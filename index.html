@@ -5,15 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
-
-  <link
-    href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css"
-    rel="stylesheet"
-  >
-
-  <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"></script>
-
   <link rel="stylesheet" href="style.css">
 
   <title>Teams R3</title>
@@ -24,7 +15,6 @@
 <div class="app">
 
   <aside class="sidebar">
-
     <div class="team-name">Teams R3</div>
 
     <div class="section-title">Canaux</div>
@@ -32,14 +22,13 @@
     <div id="channels">
       <div class="loading-small">Chargement…</div>
     </div>
-
   </aside>
 
   <main class="main">
 
     <header class="header">
 
-      <div class="channel-heading">
+      <div>
         <h1 id="channel-title">Chargement…</h1>
         <p id="channel-description"></p>
       </div>
@@ -47,32 +36,37 @@
       <div class="header-actions">
 
         <div class="current-user">
-          <span class="user-label">Connecté en tant que</span>
+          <span>Connecté en tant que</span>
           <select id="current-user-select"></select>
         </div>
 
-        <button id="new-post-button" class="primary">
+        <button
+          id="new-post-button"
+          class="primary"
+          type="button"
+        >
           + Nouvelle publication
         </button>
 
       </div>
-
     </header>
 
     <div class="feed-wrapper">
 
       <!-- NOUVELLE PUBLICATION -->
 
-      <section id="composer" class="composer hidden">
+      <section
+        id="composer"
+        class="composer hidden"
+      >
 
-        <div class="composer-top">
+        <div class="composer-header">
           <h2>Nouvelle publication</h2>
 
           <button
             id="close-composer"
             class="icon-button"
             type="button"
-            aria-label="Fermer"
           >
             ×
           </button>
@@ -86,8 +80,13 @@
             <label for="post-type">Type</label>
 
             <select id="post-type">
-              <option value="Publication">Publication</option>
-              <option value="Annonce">Annonce</option>
+              <option value="Publication">
+                Publication
+              </option>
+
+              <option value="Annonce">
+                Annonce
+              </option>
             </select>
           </div>
 
@@ -104,17 +103,18 @@
         </div>
 
         <div class="field">
-          <label>Message</label>
+          <label for="post-content">Message</label>
 
-          <div id="post-editor" class="rich-editor"></div>
-
-          <div class="field-hint">
-            Astuce : tapez <strong>@Prénom</strong> pour mentionner visuellement un membre.
-          </div>
+          <textarea
+            id="post-content"
+            placeholder="Écrivez votre publication…"
+          ></textarea>
         </div>
 
         <div class="field">
-          <label for="post-link">Lien complémentaire</label>
+          <label for="post-link">
+            Lien complémentaire
+          </label>
 
           <input
             id="post-link"
@@ -125,12 +125,12 @@
 
         <div class="composer-actions">
 
-          <label
-            id="post-pin-wrapper"
-            class="checkbox-row hidden"
-          >
-            <input id="post-pin" type="checkbox">
-            Épingler dans ce canal
+          <label class="checkbox-row">
+            <input
+              id="post-pin"
+              type="checkbox"
+            >
+            Épingler
           </label>
 
           <div class="composer-actions-right">
@@ -152,7 +152,6 @@
             </button>
 
           </div>
-
         </div>
 
       </section>
@@ -166,13 +165,15 @@
     </div>
 
   </main>
-
 </div>
 
 
-<!-- MODALE D'ÉDITION -->
+<!-- MODALE DE MODIFICATION -->
 
-<div id="edit-modal" class="modal hidden">
+<div
+  id="edit-modal"
+  class="modal hidden"
+>
 
   <div class="modal-backdrop"></div>
 
@@ -197,48 +198,42 @@
     <div id="edit-post-fields">
 
       <div class="field">
-
-        <label for="edit-type">
-          Type
-        </label>
+        <label for="edit-type">Type</label>
 
         <select id="edit-type">
-          <option value="Publication">Publication</option>
-          <option value="Annonce">Annonce</option>
-        </select>
+          <option value="Publication">
+            Publication
+          </option>
 
+          <option value="Annonce">
+            Annonce
+          </option>
+        </select>
       </div>
 
       <div class="field">
-
-        <label for="edit-title">
-          Titre
-        </label>
+        <label for="edit-title">Titre</label>
 
         <input
           id="edit-title"
           type="text"
         >
-
       </div>
 
     </div>
 
     <div class="field">
-
-      <label>
+      <label for="edit-content">
         Message
       </label>
 
-      <div
-        id="edit-editor"
-        class="rich-editor"
-      ></div>
-
+      <textarea id="edit-content"></textarea>
     </div>
 
-    <div id="edit-link-field" class="field">
-
+    <div
+      id="edit-link-field"
+      class="field"
+    >
       <label for="edit-link">
         Lien complémentaire
       </label>
@@ -247,19 +242,19 @@
         id="edit-link"
         type="text"
       >
-
     </div>
 
     <div
       id="edit-pin-field"
-      class="field hidden"
+      class="field"
     >
-
       <label class="checkbox-row">
-        <input id="edit-pin" type="checkbox">
+        <input
+          id="edit-pin"
+          type="checkbox"
+        >
         Épingler
       </label>
-
     </div>
 
     <div class="modal-actions">
@@ -283,7 +278,6 @@
     </div>
 
   </div>
-
 </div>
 
 <script src="app.js"></script>
