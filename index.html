@@ -17,7 +17,11 @@
       margin: 0;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
       color: #242424;
-      background: #ffffff;
+      background: #fff;
+    }
+
+    button, input, textarea, select {
+      font: inherit;
     }
 
     .app {
@@ -25,13 +29,11 @@
       min-height: 100vh;
     }
 
-    /* ---------- CANAUX ---------- */
-
     .sidebar {
       width: 220px;
       flex-shrink: 0;
-      background: #f5f5f5;
-      border-right: 1px solid #e1e1e1;
+      background: #f7f7f7;
+      border-right: 1px solid #e2e2e2;
       padding: 22px 12px;
     }
 
@@ -72,12 +74,10 @@
     }
 
     .channel.active {
-      background: #e4e3f5;
+      background: #e5e4f4;
       color: #3f3b78;
       font-weight: 600;
     }
-
-    /* ---------- CONTENU ---------- */
 
     .main {
       flex: 1;
@@ -87,10 +87,14 @@
     .header {
       position: sticky;
       top: 0;
-      z-index: 2;
-      padding: 22px 30px 18px;
-      background: rgba(255,255,255,.96);
+      z-index: 3;
+      background: rgba(255,255,255,.97);
       border-bottom: 1px solid #ededed;
+      padding: 20px 30px;
+      display: flex;
+      gap: 20px;
+      justify-content: space-between;
+      align-items: center;
     }
 
     .header h1 {
@@ -99,20 +103,104 @@
     }
 
     .header p {
-      margin: 5px 0 0;
+      margin: 4px 0 0;
       color: #777;
       font-size: 13px;
     }
 
+    .primary {
+      border: 0;
+      border-radius: 7px;
+      background: #6264a7;
+      color: white;
+      padding: 10px 15px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .primary:hover {
+      opacity: .92;
+    }
+
+    .secondary {
+      border: 1px solid #d5d5d5;
+      border-radius: 7px;
+      background: #fff;
+      padding: 9px 13px;
+      cursor: pointer;
+    }
+
     .feed {
-      max-width: 850px;
+      max-width: 880px;
       padding: 25px 30px 80px;
     }
 
-    /* ---------- PUBLICATION ---------- */
+    .composer {
+      border: 1px solid #dedede;
+      border-radius: 10px;
+      padding: 18px;
+      margin-bottom: 25px;
+      background: #fff;
+    }
+
+    .composer.hidden {
+      display: none;
+    }
+
+    .composer h2 {
+      font-size: 17px;
+      margin: 0 0 16px;
+    }
+
+    .field {
+      margin-bottom: 13px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 5px;
+      color: #555;
+    }
+
+    input[type="text"],
+    textarea,
+    select {
+      width: 100%;
+      border: 1px solid #ccc;
+      border-radius: 7px;
+      padding: 9px 10px;
+      background: white;
+    }
+
+    textarea {
+      min-height: 110px;
+      resize: vertical;
+    }
+
+    .composer-actions {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-top: 14px;
+    }
+
+    .composer-actions-right {
+      display: flex;
+      gap: 8px;
+    }
+
+    .checkbox-row {
+      display: flex;
+      gap: 7px;
+      align-items: center;
+      font-size: 13px;
+    }
 
     .post {
-      padding: 20px 0 25px;
+      padding: 20px 0 26px;
       border-bottom: 1px solid #e5e5e5;
     }
 
@@ -177,12 +265,10 @@
       font-size: 13px;
     }
 
-    /* ---------- COMMENTAIRES ---------- */
-
     .comments {
       margin: 18px 0 0 48px;
       padding-left: 16px;
-      border-left: 2px solid #eeeeee;
+      border-left: 2px solid #eee;
     }
 
     .comments-title {
@@ -219,10 +305,25 @@
       white-space: pre-wrap;
     }
 
-    /* ---------- ÉTATS ---------- */
+    .reply-box {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: 150px 1fr auto;
+      gap: 8px;
+      align-items: end;
+    }
+
+    .reply-box textarea {
+      min-height: 60px;
+    }
+
+    .reply-box select,
+    .reply-box textarea {
+      font-size: 13px;
+    }
 
     .message {
-      padding: 35px 30px;
+      padding: 35px 0;
       color: #666;
     }
 
@@ -230,19 +331,29 @@
       color: #b42318;
     }
 
-    @media (max-width: 650px) {
+    .success {
+      color: #267a3c;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+
+    @media (max-width: 750px) {
       .sidebar {
         width: 160px;
       }
 
-      .feed,
-      .header {
+      .header,
+      .feed {
         padding-left: 18px;
         padding-right: 18px;
       }
 
       .comments {
-        margin-left: 15px;
+        margin-left: 12px;
+      }
+
+      .reply-box {
+        grid-template-columns: 1fr;
       }
     }
   </style>
@@ -267,14 +378,84 @@
   <main class="main">
 
     <header class="header">
-      <h1 id="channel-title">Chargement…</h1>
-      <p id="channel-description"></p>
+
+      <div>
+        <h1 id="channel-title">Chargement…</h1>
+        <p id="channel-description"></p>
+      </div>
+
+      <button id="new-post-button" class="primary">
+        + Nouvelle publication
+      </button>
+
     </header>
 
-    <div id="feed" class="feed">
-      <div class="message">
-        Connexion à Grist…
+    <div class="feed">
+
+      <div id="composer" class="composer hidden">
+
+        <h2>Nouvelle publication</h2>
+
+        <div id="composer-message"></div>
+
+        <div class="field">
+          <label for="post-author">Auteur</label>
+          <select id="post-author"></select>
+        </div>
+
+        <div class="field">
+          <label for="post-title">Titre</label>
+          <input
+            id="post-title"
+            type="text"
+            placeholder="Titre de la publication"
+          >
+        </div>
+
+        <div class="field">
+          <label for="post-content">Message</label>
+          <textarea
+            id="post-content"
+            placeholder="Écrivez votre publication…"
+          ></textarea>
+        </div>
+
+        <div class="field">
+          <label for="post-link">Lien</label>
+          <input
+            id="post-link"
+            type="text"
+            placeholder="https://..."
+          >
+        </div>
+
+        <div class="composer-actions">
+
+          <label class="checkbox-row">
+            <input id="post-pin" type="checkbox">
+            Épingler
+          </label>
+
+          <div class="composer-actions-right">
+            <button id="cancel-post" class="secondary">
+              Annuler
+            </button>
+
+            <button id="publish-post" class="primary">
+              Publier
+            </button>
+          </div>
+
+        </div>
+
       </div>
+
+      <div id="feed">
+        <div class="message">
+          Connexion à Grist…
+        </div>
+      </div>
+
     </div>
 
   </main>
@@ -283,17 +464,19 @@
 
 <script>
 
+  const TABLES = {
+    users: "Utilisateurs",
+    channels: "Canaux",
+    posts: "Publications",
+    comments: "Commentaires"
+  };
+
   let channels = [];
   let posts = [];
   let comments = [];
   let users = [];
-
   let currentChannel = null;
 
-  /*
-   * Le widget a besoin de lire plusieurs tables.
-   * On demande donc l'accès au document.
-   */
   grist.ready({
     requiredAccess: "full"
   });
@@ -301,9 +484,7 @@
   function rowsFromTable(table) {
     if (!table || !table.id) return [];
 
-    const ids = table.id;
-
-    return ids.map((id, index) => {
+    return table.id.map((id, index) => {
       const row = { id };
 
       Object.keys(table).forEach(column => {
@@ -339,9 +520,7 @@
 
     if (user.Initiales) return user.Initiales;
 
-    const name = getUserName(id);
-
-    return name
+    return getUserName(id)
       .split(" ")
       .map(part => part[0])
       .join("")
@@ -378,63 +557,70 @@
       .replaceAll("'", "&#039;");
   }
 
+  function populateUserSelects() {
+    const select = document.getElementById("post-author");
+
+    select.innerHTML = "";
+
+    users
+      .filter(user => user.Actif !== false)
+      .forEach(user => {
+        const option = document.createElement("option");
+        option.value = user.id;
+        option.textContent = getUserName(user.id);
+        select.appendChild(option);
+      });
+  }
+
   function renderChannels() {
     const container = document.getElementById("channels");
-
     container.innerHTML = "";
 
-    const sortedChannels = [...channels].sort(
-      (a, b) => (a.Ordre || 0) - (b.Ordre || 0)
-    );
+    [...channels]
+      .sort((a, b) => (a.Ordre || 0) - (b.Ordre || 0))
+      .forEach(channel => {
 
-    sortedChannels.forEach(channel => {
+        const button = document.createElement("button");
 
-      const button = document.createElement("button");
+        button.className =
+          "channel" +
+          (currentChannel && currentChannel.id === channel.id
+            ? " active"
+            : "");
 
-      button.className =
-        "channel" +
-        (currentChannel && currentChannel.id === channel.id
-          ? " active"
-          : "");
+        const isPrivate =
+          String(channel.Type_acces || "")
+            .toLowerCase()
+            .includes("encadrement");
 
-      const isPrivate =
-        String(channel.Type_acces || "")
-          .toLowerCase()
-          .includes("encadrement");
+        button.textContent =
+          (isPrivate ? "🔒 " : "# ") +
+          (channel.Nom || "Canal");
 
-      button.textContent =
-        (isPrivate ? "🔒 " : "# ") +
-        (channel.Nom || "Canal");
+        button.addEventListener("click", () => {
+          currentChannel = channel;
+          closeComposer();
+          renderChannels();
+          renderFeed();
+        });
 
-      button.addEventListener("click", () => {
-        currentChannel = channel;
-
-        renderChannels();
-        renderFeed();
+        container.appendChild(button);
       });
-
-      container.appendChild(button);
-    });
   }
 
   function renderFeed() {
-
     const feed = document.getElementById("feed");
     const title = document.getElementById("channel-title");
-    const description =
-      document.getElementById("channel-description");
+    const description = document.getElementById("channel-description");
 
     if (!currentChannel) {
       feed.innerHTML =
         '<div class="message">Aucun canal disponible.</div>';
-
       return;
     }
 
     title.textContent = "# " + currentChannel.Nom;
-
-    description.textContent =
-      currentChannel.Description || "";
+    description.textContent = currentChannel.Description || "";
 
     let channelPosts = posts.filter(
       post =>
@@ -442,12 +628,7 @@
         !post.Archive
     );
 
-    /*
-     * Épinglées d'abord,
-     * puis publications les plus récentes.
-     */
     channelPosts.sort((a, b) => {
-
       if (!!a.Epingle !== !!b.Epingle) {
         return a.Epingle ? -1 : 1;
       }
@@ -461,7 +642,6 @@
     if (!channelPosts.length) {
       feed.innerHTML =
         '<div class="message">Aucune publication dans ce canal.</div>';
-
       return;
     }
 
@@ -470,7 +650,6 @@
     channelPosts.forEach(post => {
 
       const article = document.createElement("article");
-
       article.className = "post";
 
       const postComments = comments
@@ -487,57 +666,43 @@
 
       const commentsHtml = postComments.length
         ? `
-          <div class="comments">
+          <div class="comments-title">
+            ${postComments.length}
+            ${postComments.length > 1 ? "réponses" : "réponse"}
+          </div>
 
-            <div class="comments-title">
-              ${postComments.length}
-              ${postComments.length > 1
-                ? "réponses"
-                : "réponse"}
-            </div>
+          ${postComments.map(comment => `
+            <div class="comment">
 
-            ${postComments.map(comment => `
-              <div class="comment">
+              <div class="comment-header">
 
-                <div class="comment-header">
+                <span class="comment-author">
+                  ${escapeHtml(getUserName(comment.Auteur))}
+                </span>
 
-                  <span class="comment-author">
-                    ${escapeHtml(
-                      getUserName(comment.Auteur)
-                    )}
-                  </span>
-
-                  <span class="comment-date">
-                    ${escapeHtml(
-                      formatDate(comment.Date_creation)
-                    )}
-                  </span>
-
-                </div>
-
-                <div class="comment-content">${escapeHtml(
-                  comment.Contenu
-                )}</div>
+                <span class="comment-date">
+                  ${escapeHtml(formatDate(comment.Date_creation))}
+                </span>
 
               </div>
-            `).join("")}
 
-          </div>
+              <div class="comment-content">${escapeHtml(
+                comment.Contenu
+              )}</div>
+
+            </div>
+          `).join("")}
         `
         : "";
 
-      const linkHtml = post.Lien
-        ? `
-          <a
-            class="post-link"
-            href="${escapeHtml(post.Lien)}"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            🔗 Ouvrir le lien
-          </a>
-        `
-        : "";
+      const userOptions = users
+        .filter(user => user.Actif !== false)
+        .map(user => `
+          <option value="${user.id}">
+            ${escapeHtml(getUserName(user.id))}
+          </option>
+        `)
+        .join("");
 
       article.innerHTML = `
 
@@ -569,27 +734,195 @@
           ${escapeHtml(post.Titre)}
         </div>
 
-        <div class="post-content">${escapeHtml(
-          post.Contenu
-        )}</div>
+        <div class="post-content">${escapeHtml(post.Contenu)}</div>
 
-        ${linkHtml}
+        ${post.Lien
+          ? `
+            <a
+              class="post-link"
+              href="${escapeHtml(post.Lien)}"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              🔗 Ouvrir le lien
+            </a>
+          `
+          : ""}
 
-        ${commentsHtml}
+        <div class="comments">
+
+          ${commentsHtml}
+
+          <div class="reply-box">
+
+            <select class="reply-author">
+              ${userOptions}
+            </select>
+
+            <textarea
+              class="reply-content"
+              placeholder="Répondre à cette publication…"
+            ></textarea>
+
+            <button class="primary reply-button">
+              Répondre
+            </button>
+
+          </div>
+
+        </div>
       `;
+
+      article
+        .querySelector(".reply-button")
+        .addEventListener("click", async () => {
+
+          const authorId = Number(
+            article.querySelector(".reply-author").value
+          );
+
+          const content =
+            article.querySelector(".reply-content").value.trim();
+
+          if (!content) {
+            alert("Écris une réponse avant de l'envoyer.");
+            return;
+          }
+
+          await createComment(
+            post.id,
+            authorId,
+            content
+          );
+
+        });
 
       feed.appendChild(article);
     });
   }
 
-  async function loadData() {
+  function openComposer() {
+    document
+      .getElementById("composer")
+      .classList.remove("hidden");
+
+    document
+      .getElementById("post-title")
+      .focus();
+  }
+
+  function closeComposer() {
+    document
+      .getElementById("composer")
+      .classList.add("hidden");
+
+    document.getElementById("post-title").value = "";
+    document.getElementById("post-content").value = "";
+    document.getElementById("post-link").value = "";
+    document.getElementById("post-pin").checked = false;
+    document.getElementById("composer-message").innerHTML = "";
+  }
+
+  async function createPost() {
+
+    if (!currentChannel) return;
+
+    const authorId = Number(
+      document.getElementById("post-author").value
+    );
+
+    const title =
+      document.getElementById("post-title").value.trim();
+
+    const content =
+      document.getElementById("post-content").value.trim();
+
+    const link =
+      document.getElementById("post-link").value.trim();
+
+    const pin =
+      document.getElementById("post-pin").checked;
+
+    if (!title) {
+      document.getElementById("composer-message").innerHTML =
+        '<div class="error">Le titre est obligatoire.</div>';
+      return;
+    }
+
+    if (!content) {
+      document.getElementById("composer-message").innerHTML =
+        '<div class="error">Le message est obligatoire.</div>';
+      return;
+    }
 
     try {
 
-      /*
-       * fetchTable renvoie toutes les lignes
-       * de chacune de nos tables.
-       */
+      await grist.docApi.applyUserActions([
+        [
+          "AddRecord",
+          TABLES.posts,
+          null,
+          {
+            Canal: currentChannel.id,
+            Auteur: authorId,
+            Date_creation: Date.now() / 1000,
+            Titre: title,
+            Contenu: content,
+            Epingle: pin,
+            Lien: link,
+            Archive: false
+          }
+        ]
+      ]);
+
+      closeComposer();
+      await loadData();
+
+    } catch (error) {
+      console.error(error);
+
+      document.getElementById("composer-message").innerHTML =
+        `
+          <div class="error">
+            Impossible de publier : ${escapeHtml(error.message || error)}
+          </div>
+        `;
+    }
+  }
+
+  async function createComment(postId, authorId, content) {
+
+    try {
+
+      await grist.docApi.applyUserActions([
+        [
+          "AddRecord",
+          TABLES.comments,
+          null,
+          {
+            Publication: postId,
+            Auteur: authorId,
+            Date_creation: Date.now() / 1000,
+            Contenu: content,
+            Supprime: false
+          }
+        ]
+      ]);
+
+      await loadData();
+
+    } catch (error) {
+      console.error(error);
+      alert(
+        "Impossible d'ajouter la réponse : " +
+        (error.message || error)
+      );
+    }
+  }
+
+  async function loadData() {
+
+    try {
 
       const [
         channelsRaw,
@@ -598,31 +931,40 @@
         usersRaw
       ] = await Promise.all([
 
-        grist.docApi.fetchTable("Canaux"),
-        grist.docApi.fetchTable("Publications"),
-        grist.docApi.fetchTable("Commentaires"),
-        grist.docApi.fetchTable("Utilisateurs")
+        grist.docApi.fetchTable(TABLES.channels),
+        grist.docApi.fetchTable(TABLES.posts),
+        grist.docApi.fetchTable(TABLES.comments),
+        grist.docApi.fetchTable(TABLES.users)
 
       ]);
+
+      const previousChannelId =
+        currentChannel ? currentChannel.id : null;
 
       channels = rowsFromTable(channelsRaw);
       posts = rowsFromTable(postsRaw);
       comments = rowsFromTable(commentsRaw);
       users = rowsFromTable(usersRaw);
 
-      /*
-       * On sélectionne Général par défaut.
-       */
+      if (previousChannelId) {
+        currentChannel =
+          channels.find(
+            channel => channel.id === previousChannelId
+          ) || null;
+      }
 
-      currentChannel =
-        channels.find(
-          channel =>
-            String(channel.Nom)
-              .toLowerCase() === "général"
-        ) ||
-        channels[0] ||
-        null;
+      if (!currentChannel) {
+        currentChannel =
+          channels.find(
+            channel =>
+              String(channel.Nom)
+                .toLowerCase() === "général"
+          ) ||
+          channels[0] ||
+          null;
+      }
 
+      populateUserSelects();
       renderChannels();
       renderFeed();
 
@@ -640,6 +982,18 @@
 
     }
   }
+
+  document
+    .getElementById("new-post-button")
+    .addEventListener("click", openComposer);
+
+  document
+    .getElementById("cancel-post")
+    .addEventListener("click", closeComposer);
+
+  document
+    .getElementById("publish-post")
+    .addEventListener("click", createPost);
 
   loadData();
 
