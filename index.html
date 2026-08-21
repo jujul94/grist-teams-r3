@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+
   <link rel="stylesheet" href="style.css">
 
   <title>Teams R3</title>
@@ -15,6 +16,7 @@
 <div class="app">
 
   <aside class="sidebar">
+
     <div class="team-name">Teams R3</div>
 
     <div class="section-title">Canaux</div>
@@ -22,6 +24,7 @@
     <div id="channels">
       <div class="loading-small">Chargement…</div>
     </div>
+
   </aside>
 
   <main class="main">
@@ -36,75 +39,37 @@
       <div class="header-actions">
 
         <div class="current-user">
-          <span>Connecté en tant que</span>
+          <span class="user-label">Connecté en tant que</span>
           <select id="current-user-select"></select>
         </div>
 
-        <button
-          id="new-post-button"
-          class="primary"
-          type="button"
-        >
+        <button id="new-post-button" class="primary">
           + Nouvelle publication
         </button>
 
       </div>
+
     </header>
 
     <div class="feed-wrapper">
 
-      <!-- NOUVELLE PUBLICATION -->
+      <div id="composer" class="composer hidden">
 
-      <section
-        id="composer"
-        class="composer hidden"
-      >
-
-        <div class="composer-header">
-          <h2>Nouvelle publication</h2>
-
-          <button
-            id="close-composer"
-            class="icon-button"
-            type="button"
-          >
-            ×
-          </button>
-        </div>
+        <h2>Nouvelle publication</h2>
 
         <div id="composer-message"></div>
 
-        <div class="composer-grid">
-
-          <div class="field">
-            <label for="post-type">Type</label>
-
-            <select id="post-type">
-              <option value="Publication">
-                Publication
-              </option>
-
-              <option value="Annonce">
-                Annonce
-              </option>
-            </select>
-          </div>
-
-          <div class="field">
-            <label for="post-title">Titre</label>
-
-            <input
-              id="post-title"
-              type="text"
-              placeholder="Titre de la publication"
-            >
-          </div>
-
+        <div class="field">
+          <label for="post-title">Titre</label>
+          <input
+            id="post-title"
+            type="text"
+            placeholder="Titre de la publication"
+          >
         </div>
 
         <div class="field">
           <label for="post-content">Message</label>
-
           <textarea
             id="post-content"
             placeholder="Écrivez votre publication…"
@@ -112,10 +77,7 @@
         </div>
 
         <div class="field">
-          <label for="post-link">
-            Lien complémentaire
-          </label>
-
+          <label for="post-link">Lien</label>
           <input
             id="post-link"
             type="text"
@@ -126,35 +88,25 @@
         <div class="composer-actions">
 
           <label class="checkbox-row">
-            <input
-              id="post-pin"
-              type="checkbox"
-            >
+            <input id="post-pin" type="checkbox">
             Épingler
           </label>
 
           <div class="composer-actions-right">
 
-            <button
-              id="cancel-post"
-              class="secondary"
-              type="button"
-            >
+            <button id="cancel-post" class="secondary">
               Annuler
             </button>
 
-            <button
-              id="publish-post"
-              class="primary"
-              type="button"
-            >
+            <button id="publish-post" class="primary">
               Publier
             </button>
 
           </div>
+
         </div>
 
-      </section>
+      </div>
 
       <div id="feed">
         <div class="message">
@@ -165,119 +117,58 @@
     </div>
 
   </main>
+
 </div>
 
+<!-- MODALE ÉDITION -->
 
-<!-- MODALE DE MODIFICATION -->
-
-<div
-  id="edit-modal"
-  class="modal hidden"
->
+<div id="edit-modal" class="modal hidden">
 
   <div class="modal-backdrop"></div>
 
   <div class="modal-dialog">
 
     <div class="modal-header">
-
-      <h2 id="edit-modal-title">
-        Modifier
-      </h2>
-
-      <button
-        id="close-edit-modal"
-        class="icon-button"
-        type="button"
-      >
-        ×
-      </button>
-
+      <h2 id="edit-modal-title">Modifier</h2>
+      <button id="close-edit-modal" class="icon-button">×</button>
     </div>
 
-    <div id="edit-post-fields">
-
-      <div class="field">
-        <label for="edit-type">Type</label>
-
-        <select id="edit-type">
-          <option value="Publication">
-            Publication
-          </option>
-
-          <option value="Annonce">
-            Annonce
-          </option>
-        </select>
-      </div>
-
-      <div class="field">
-        <label for="edit-title">Titre</label>
-
-        <input
-          id="edit-title"
-          type="text"
-        >
-      </div>
-
+    <div class="field" id="edit-title-field">
+      <label for="edit-title">Titre</label>
+      <input id="edit-title" type="text">
     </div>
 
     <div class="field">
-      <label for="edit-content">
-        Message
-      </label>
-
+      <label for="edit-content">Message</label>
       <textarea id="edit-content"></textarea>
     </div>
 
-    <div
-      id="edit-link-field"
-      class="field"
-    >
-      <label for="edit-link">
-        Lien complémentaire
-      </label>
-
-      <input
-        id="edit-link"
-        type="text"
-      >
+    <div class="field" id="edit-link-field">
+      <label for="edit-link">Lien</label>
+      <input id="edit-link" type="text">
     </div>
 
-    <div
-      id="edit-pin-field"
-      class="field"
-    >
+    <div id="edit-pin-field">
       <label class="checkbox-row">
-        <input
-          id="edit-pin"
-          type="checkbox"
-        >
+        <input id="edit-pin" type="checkbox">
         Épingler
       </label>
     </div>
 
     <div class="modal-actions">
 
-      <button
-        id="cancel-edit"
-        class="secondary"
-        type="button"
-      >
+      <button id="cancel-edit" class="secondary">
         Annuler
       </button>
 
-      <button
-        id="save-edit"
-        class="primary"
-        type="button"
-      >
+      <button id="save-edit" class="primary">
         Enregistrer
       </button>
 
     </div>
 
   </div>
+
 </div>
 
 <script src="app.js"></script>
