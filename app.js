@@ -12,53 +12,35 @@ let users = [];
 
 let currentChannel = null;
 let currentUserId = null;
+
 let editState = null;
-
-
-/* =========================================================
-   INITIALISATION GRIST
-========================================================= */
 
 grist.ready({
   requiredAccess: "full"
 });
 
-
-/* =========================================================
+/* =========================
    OUTILS
-========================================================= */
+========================= */
 
 function rowsFromTable(table) {
-
-  if (!table || !table.id) {
-    return [];
-  }
+  if (!table || !table.id) return [];
 
   return table.id.map((id, index) => {
-
     const row = { id };
 
     Object.keys(table).forEach(column => {
-
       if (column !== "id") {
         row[column] = table[column][index];
       }
-
     });
 
     return row;
   });
 }
 
-
 function escapeHtml(value) {
-
-  if (
-    value === null ||
-    value === undefined
-  ) {
-    return "";
-  }
+  if (value === null || value === undefined) return "";
 
   return String(value)
     .replaceAll("&", "&amp;")
@@ -68,48 +50,28 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
-
 function getUser(id) {
-
-  return users.find(
-    user =>
-      Number(user.id) === Number(id)
-  );
+  return users.find(user => user.id === id);
 }
 
-
 function getUserName(id) {
-
   const user = getUser(id);
 
-  if (!user) {
-    return "Utilisateur";
-  }
+  if (!user) return "Utilisateur";
 
   return (
     user.Nom_affiche ||
-    [
-      user.Prenom,
-      user.Nom
-    ]
-      .filter(Boolean)
-      .join(" ") ||
+    [user.Prenom, user.Nom].filter(Boolean).join(" ") ||
     "Utilisateur"
   );
 }
 
-
 function getInitials(id) {
-
   const user = getUser(id);
 
-  if (!user) {
-    return "?";
-  }
+  if (!user) return "?";
 
-  if (user.Initiales) {
-    return user.Initiales;
-  }
+  if (user.Initiales) return user.Initiales;
 
   return getUserName(id)
     .split(" ")
@@ -119,336 +81,160 @@ function getInitials(id) {
     .toUpperCase();
 }
 
-
-function isMine(authorId) {
-
-  return (
-    Number(authorId) ===
-    Number(currentUserId)
-  );
-}
-
-
-/* =========================================================
-   DATES
-========================================================= */
-
-function toDate(value) {
-
-  if (!value) {
-    return null;
-  }
-
-  /*
-   * Dates Grist stockées en secondes Unix.
-   */
-  if (
-    typeof value === "number" &&
-    value < 100000000000
-  ) {
-    return new Date(value * 1000);
-  }
+function formatDate(value) {
+  if (!value) return "";
 
   const date = new Date(value);
 
-  return Number.isNaN(date.getTime())
-    ? null
-    : date;
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
+
+  return new Intl.DateTimeFormat("fr-FR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(date);
 }
 
-
-function relativeDate(value) {
-
-  const date = toDate(value);
-
-  if (!date) {
-    return "";
-  }
-
-  const now = new Date();
-
-  const diff =
-    now.getTime() -
-    date.getTime();
-
-  const minutes =
-    Math.floor(diff / 60000);
-
-  if (minutes < 1) {
-    return "à l’instant";
-  }
-
-  if (minutes < 60) {
-    return `il y a ${minutes} min`;
-  }
-
-  const hours =
-    Math.floor(minutes / 60);
-
-  if (hours < 24) {
-    return `il y a ${hours} h`;
-  }
-
-  const yesterday =
-    new Date(now);
-
-  yesterday.setDate(
-    now.getDate() - 1
-  );
-
-  if (
-    date.toDateString() ===
-    yesterday.toDateString()
-  ) {
-
-    return (
-      "hier à " +
-      new Intl.DateTimeFormat(
-        "fr-FR",
-        {
-          hour: "2-digit",
-          minute: "2-digit"
-        }
-      ).format(date)
-    );
-  }
-
-  if (hours < 168) {
-
-    return new Intl.DateTimeFormat(
-      "fr-FR",
-      {
-        weekday: "long",
-        hour: "2-digit",
-        minute: "2-digit"
-      }
-    ).format(date);
-  }
-
-  return new Intl.DateTimeFormat(
-    "fr-FR",
-    {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit"
-    }
-  ).format(date);
+function isMine(authorId) {
+  return Number(authorId) === Number(currentUserId);
 }
 
-
-/* =========================================================
+/* =========================
    UTILISATEUR ACTIF
-========================================================= */
+========================= */
 
 function renderCurrentUserSelector() {
 
   const select =
-    document.getElementById(
-      "current-user-select"
-    );
+    document.getElementById("current-user-select");
 
   select.innerHTML = "";
 
   const activeUsers =
-    users.filter(
-      user =>
-        user.Actif !== false
-    );
+    users.filter(user => user.Actif !== false);
 
   activeUsers.forEach(user => {
 
     const option =
-      document.createElement(
-        "option"
-      );
+      document.createElement("option");
 
-    option.value =
-      user.id;
-
-    option.textContent =
-      getUserName(user.id);
+    option.value = user.id;
+    option.textContent = getUserName(user.id);
 
     select.appendChild(option);
   });
 
-  if (
-    !currentUserId &&
-    activeUsers.length
-  ) {
-    currentUserId =
-      activeUsers[0].id;
+  if (!currentUserId && activeUsers.length) {
+    currentUserId = activeUsers[0].id;
   }
 
-  select.value =
-    currentUserId || "";
+  select.value = currentUserId || "";
 
   select.onchange = () => {
-
-    currentUserId =
-      Number(select.value);
-
-    closeComposer();
-
+    currentUserId = Number(select.value);
     renderFeed();
   };
 }
 
-
-/* =========================================================
+/* =========================
    CANAUX
-========================================================= */
+========================= */
 
 function renderChannels() {
 
   const container =
-    document.getElementById(
-      "channels"
-    );
+    document.getElementById("channels");
 
   container.innerHTML = "";
 
   [...channels]
-    .sort(
-      (a, b) =>
-        (a.Ordre || 0) -
-        (b.Ordre || 0)
-    )
+    .sort((a, b) => (a.Ordre || 0) - (b.Ordre || 0))
     .forEach(channel => {
 
       const button =
-        document.createElement(
-          "button"
-        );
+        document.createElement("button");
 
       button.className =
         "channel" +
         (
           currentChannel &&
-          Number(currentChannel.id) ===
-          Number(channel.id)
+          currentChannel.id === channel.id
             ? " active"
             : ""
         );
 
-      const privateChannel =
-        String(
-          channel.Type_acces || ""
-        )
+      const isPrivate =
+        String(channel.Type_acces || "")
           .toLowerCase()
-          .includes(
-            "encadrement"
-          );
+          .includes("encadrement");
 
       button.textContent =
-        (
-          privateChannel
-            ? "🔒 "
-            : "# "
-        ) +
-        (
-          channel.Nom ||
-          "Canal"
-        );
+        (isPrivate ? "🔒 " : "# ") +
+        (channel.Nom || "Canal");
 
-      button.addEventListener(
-        "click",
-        () => {
+      button.addEventListener("click", () => {
+        currentChannel = channel;
+        closeComposer();
+        renderChannels();
+        renderFeed();
+      });
 
-          currentChannel =
-            channel;
-
-          closeComposer();
-
-          renderChannels();
-          renderFeed();
-        }
-      );
-
-      container.appendChild(
-        button
-      );
+      container.appendChild(button);
     });
 }
 
-
-/* =========================================================
+/* =========================
    FIL
-========================================================= */
+========================= */
 
 function renderFeed() {
 
   const feed =
-    document.getElementById(
-      "feed"
-    );
+    document.getElementById("feed");
 
   const title =
-    document.getElementById(
-      "channel-title"
-    );
+    document.getElementById("channel-title");
 
   const description =
-    document.getElementById(
-      "channel-description"
-    );
+    document.getElementById("channel-description");
 
   if (!currentChannel) {
-
     feed.innerHTML =
-      `
-        <div class="message">
-          Aucun canal disponible.
-        </div>
-      `;
-
+      '<div class="message">Aucun canal disponible.</div>';
     return;
   }
 
   title.textContent =
-    "# " +
-    currentChannel.Nom;
+    "# " + currentChannel.Nom;
 
   description.textContent =
-    currentChannel.Description ||
-    "";
+    currentChannel.Description || "";
 
-  const channelPosts =
-    posts
-      .filter(post =>
+  let channelPosts =
+    posts.filter(post =>
+      post.Canal === currentChannel.id &&
+      !post.Archive
+    );
 
-        Number(post.Canal) ===
-          Number(currentChannel.id) &&
+  channelPosts.sort((a, b) => {
 
-        !post.Archive
-      )
-      .sort((a, b) => {
+    if (!!a.Epingle !== !!b.Epingle) {
+      return a.Epingle ? -1 : 1;
+    }
 
-        if (
-          !!a.Epingle !==
-          !!b.Epingle
-        ) {
-          return a.Epingle
-            ? -1
-            : 1;
-        }
-
-        return (
-          (toDate(b.Date_creation)?.getTime() || 0) -
-          (toDate(a.Date_creation)?.getTime() || 0)
-        );
-      });
+    return (
+      new Date(b.Date_creation || 0) -
+      new Date(a.Date_creation || 0)
+    );
+  });
 
   if (!channelPosts.length) {
-
     feed.innerHTML =
-      `
-        <div class="message">
-          Aucune publication dans ce canal.
-        </div>
-      `;
-
+      '<div class="message">Aucune publication dans ce canal.</div>';
     return;
   }
 
@@ -456,174 +242,168 @@ function renderFeed() {
 
   channelPosts.forEach(post => {
 
-    feed.appendChild(
-      renderPost(post)
-    );
+    const article =
+      document.createElement("article");
 
-  });
-}
+    article.className = "post";
 
+    article.dataset.postId = post.id;
 
-function renderPost(post) {
+    const postComments =
+      comments
+        .filter(comment =>
+          comment.Publication === post.id &&
+          !comment.Supprime
+        )
+        .sort((a, b) =>
+          new Date(a.Date_creation || 0) -
+          new Date(b.Date_creation || 0)
+        );
 
-  const article =
-    document.createElement(
-      "article"
-    );
+    const commentsHtml =
+      postComments.map(comment => {
 
-  const announcement =
-    String(
-      post.Type_publication ||
-      "Publication"
-    ).toLowerCase() ===
-    "annonce";
+        const actions =
+          isMine(comment.Auteur)
+            ? `
+              <div class="comment-actions">
 
-  article.className =
-    "post" +
-    (
-      announcement
-        ? " announcement"
-        : ""
-    );
+                <button
+                  class="text-button edit-comment"
+                  data-comment-id="${comment.id}"
+                >
+                  Modifier
+                </button>
 
-  const postComments =
-    comments
-      .filter(comment =>
+                <button
+                  class="text-button danger-button delete-comment"
+                  data-comment-id="${comment.id}"
+                >
+                  Supprimer
+                </button>
 
-        Number(
-          comment.Publication
-        ) ===
-          Number(post.id) &&
+              </div>
+            `
+            : "";
 
-        !comment.Supprime
-      )
-      .sort(
-        (a, b) =>
-          (toDate(a.Date_creation)?.getTime() || 0) -
-          (toDate(b.Date_creation)?.getTime() || 0)
-      );
+        return `
+          <div class="comment">
 
-  const postActions =
-    isMine(post.Auteur)
-      ? `
-        <div class="post-actions">
+            <div class="comment-header">
 
-          <button
-            class="text-button edit-post"
-            type="button"
-          >
-            Modifier
-          </button>
+              <span class="comment-author">
+                ${escapeHtml(
+                  getUserName(comment.Auteur)
+                )}
+              </span>
 
-          <button
-            class="text-button toggle-pin"
-            type="button"
-          >
-            ${
-              post.Epingle
+              <span class="comment-date">
+                ${escapeHtml(
+                  formatDate(comment.Date_creation)
+                )}
+              </span>
+
+              ${comment.Modifie
+                ? '<span class="edited">modifié</span>'
+                : ""
+              }
+
+            </div>
+
+            <div class="comment-content">${escapeHtml(
+              comment.Contenu
+            )}</div>
+
+            ${actions}
+
+          </div>
+        `;
+      }).join("");
+
+    const postActions =
+      isMine(post.Auteur)
+        ? `
+          <div class="post-actions">
+
+            <button
+              class="text-button edit-post"
+              data-post-id="${post.id}"
+            >
+              Modifier
+            </button>
+
+            <button
+              class="text-button toggle-pin"
+              data-post-id="${post.id}"
+            >
+              ${post.Epingle
                 ? "Désépingler"
                 : "Épingler"
-            }
-          </button>
+              }
+            </button>
 
-          <button
-            class="text-button danger-button delete-post"
-            type="button"
-          >
-            Supprimer
-          </button>
+            <button
+              class="text-button danger-button delete-post"
+              data-post-id="${post.id}"
+            >
+              Supprimer
+            </button>
 
-        </div>
-      `
-      : "";
-
-  const commentsHtml =
-    postComments
-      .map(comment =>
-        renderCommentHtml(comment)
-      )
-      .join("");
-
-  article.innerHTML = `
-
-    ${
-      announcement
-        ? `
-          <div class="announcement-label">
-            📣 Annonce
           </div>
         `
+        : "";
+
+    article.innerHTML = `
+
+      ${post.Epingle
+        ? '<div class="pin">📌 Publication épinglée</div>'
         : ""
-    }
+      }
 
-    ${
-      post.Epingle
-        ? `
-          <div class="pin">
-            📌 Publication épinglée
-          </div>
-        `
-        : ""
-    }
+      <div class="post-meta">
 
-    <div class="post-meta">
-
-      <div class="avatar">
-        ${escapeHtml(
-          getInitials(
-            post.Auteur
-          )
-        )}
-      </div>
-
-      <div>
-
-        <div class="author">
+        <div class="avatar">
           ${escapeHtml(
-            getUserName(
-              post.Auteur
-            )
+            getInitials(post.Auteur)
           )}
         </div>
 
-        <div class="date">
+        <div>
 
-          ${escapeHtml(
-            relativeDate(
-              post.Date_creation
-            )
-          )}
+          <div class="author">
+            ${escapeHtml(
+              getUserName(post.Auteur)
+            )}
+          </div>
 
-          ${
-            post.Modifie
+          <div class="date">
+            ${escapeHtml(
+              formatDate(post.Date_creation)
+            )}
+
+            ${post.Modifie
               ? " · modifié"
               : ""
-          }
+            }
+          </div>
 
         </div>
 
       </div>
 
-    </div>
+      <div class="post-title">
+        ${escapeHtml(post.Titre)}
+      </div>
 
-    <div class="post-title">
-      ${escapeHtml(
-        post.Titre
-      )}
-    </div>
+      <div class="post-content">${escapeHtml(
+        post.Contenu
+      )}</div>
 
-    <div class="post-content">${escapeHtml(
-      post.Contenu
-    )}</div>
-
-    ${
-      post.Lien
+      ${post.Lien
         ? `
           <a
             class="post-link"
-            href="${escapeHtml(
-              post.Lien
-            )}"
+            href="${escapeHtml(post.Lien)}"
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -631,443 +411,207 @@ function renderPost(post) {
           </a>
         `
         : ""
-    }
-
-    ${postActions}
-
-    <div class="thread-divider"></div>
-
-    <div class="comments-count">
-
-      ${
-        postComments.length === 0
-          ? "Aucune réponse"
-          : postComments.length === 1
-            ? "1 réponse"
-            : `${postComments.length} réponses`
       }
 
-    </div>
+      ${postActions}
 
-    <div class="comments-list">
-      ${commentsHtml}
-    </div>
+      <div class="comments">
 
-    <div class="reply-box">
+        ${postComments.length
+          ? `
+            <div class="comments-title">
+              ${postComments.length}
+              ${postComments.length > 1
+                ? "réponses"
+                : "réponse"
+              }
+            </div>
+          `
+          : ""
+        }
 
-      <textarea
-        class="reply-content"
-        placeholder="Répondre en tant que ${escapeHtml(
-          getUserName(currentUserId)
-        )}…"
-      ></textarea>
+        ${commentsHtml}
 
-      <button
-        class="primary reply-button"
-        type="button"
-      >
-        Répondre
-      </button>
+        <div class="reply-box">
 
-    </div>
-  `;
+          <textarea
+            class="reply-content"
+            placeholder="Répondre en tant que ${escapeHtml(
+              getUserName(currentUserId)
+            )}…"
+          ></textarea>
 
-  attachPostEvents(
-    article,
-    post
-  );
-
-  return article;
-}
-
-
-function renderCommentHtml(comment) {
-
-  const actions =
-    isMine(comment.Auteur)
-      ? `
-        <div class="comment-actions">
-
-          <button
-            class="text-button edit-comment"
-            data-comment-id="${comment.id}"
-            type="button"
-          >
-            Modifier
-          </button>
-
-          <button
-            class="text-button danger-button delete-comment"
-            data-comment-id="${comment.id}"
-            type="button"
-          >
-            Supprimer
+          <button class="primary reply-button">
+            Répondre
           </button>
 
         </div>
-      `
-      : "";
-
-  return `
-
-    <div class="comment">
-
-      <div class="comment-header">
-
-        <span class="comment-author">
-          ${escapeHtml(
-            getUserName(
-              comment.Auteur
-            )
-          )}
-        </span>
-
-        <span class="comment-date">
-          ${escapeHtml(
-            relativeDate(
-              comment.Date_creation
-            )
-          )}
-        </span>
-
-        ${
-          comment.Modifie
-            ? `
-              <span class="edited">
-                modifié
-              </span>
-            `
-            : ""
-        }
 
       </div>
+    `;
 
-      <div class="comment-content">${escapeHtml(
-        comment.Contenu
-      )}</div>
+    attachPostEvents(article, post);
 
-      ${actions}
-
-    </div>
-  `;
+    feed.appendChild(article);
+  });
 }
 
+/* =========================
+   EVENEMENTS D'UN THREAD
+========================= */
 
-/* =========================================================
-   ÉVÉNEMENTS DES THREADS
-========================================================= */
+function attachPostEvents(article, post) {
 
-function attachPostEvents(
-  article,
-  post
-) {
-
-  const replyButton =
-    article.querySelector(
-      ".reply-button"
-    );
-
-  replyButton.addEventListener(
-    "click",
-    async () => {
+  article
+    .querySelector(".reply-button")
+    .addEventListener("click", async () => {
 
       const textarea =
-        article.querySelector(
-          ".reply-content"
-        );
+        article.querySelector(".reply-content");
 
       const content =
         textarea.value.trim();
 
-      if (!content) {
-        return;
-      }
+      if (!content) return;
 
       await createComment(
         post.id,
         currentUserId,
         content
       );
-    }
-  );
+    });
 
+  const editPost =
+    article.querySelector(".edit-post");
 
-  const editPostButton =
-    article.querySelector(
-      ".edit-post"
-    );
-
-  if (editPostButton) {
-
-    editPostButton.addEventListener(
+  if (editPost) {
+    editPost.addEventListener(
       "click",
-      () =>
-        openPostEditor(
-          post.id
-        )
+      () => openPostEditor(post.id)
     );
   }
-
 
   const deletePostButton =
-    article.querySelector(
-      ".delete-post"
-    );
+    article.querySelector(".delete-post");
 
   if (deletePostButton) {
-
     deletePostButton.addEventListener(
       "click",
-      () =>
-        deletePost(
-          post.id
-        )
+      () => deletePost(post.id)
     );
   }
-
 
   const pinButton =
-    article.querySelector(
-      ".toggle-pin"
-    );
+    article.querySelector(".toggle-pin");
 
   if (pinButton) {
-
     pinButton.addEventListener(
       "click",
-      () =>
-        togglePin(
-          post.id
-        )
+      () => togglePin(post.id)
     );
   }
 
-
   article
-    .querySelectorAll(
-      ".edit-comment"
-    )
+    .querySelectorAll(".edit-comment")
     .forEach(button => {
 
       button.addEventListener(
         "click",
         () =>
           openCommentEditor(
-            Number(
-              button.dataset.commentId
-            )
+            Number(button.dataset.commentId)
           )
       );
     });
 
-
   article
-    .querySelectorAll(
-      ".delete-comment"
-    )
+    .querySelectorAll(".delete-comment")
     .forEach(button => {
 
       button.addEventListener(
         "click",
         () =>
           deleteComment(
-            Number(
-              button.dataset.commentId
-            )
+            Number(button.dataset.commentId)
           )
       );
     });
 }
 
-
-/* =========================================================
-   COMPOSER
-========================================================= */
+/* =========================
+   NOUVELLE PUBLICATION
+========================= */
 
 function openComposer() {
+  document
+    .getElementById("composer")
+    .classList.remove("hidden");
 
   document
-    .getElementById(
-      "composer"
-    )
-    .classList.remove(
-      "hidden"
-    );
-
-  document
-    .getElementById(
-      "post-title"
-    )
+    .getElementById("post-title")
     .focus();
 }
-
 
 function closeComposer() {
 
   document
-    .getElementById(
-      "composer"
-    )
-    .classList.add(
-      "hidden"
-    );
+    .getElementById("composer")
+    .classList.add("hidden");
 
-  document.getElementById(
-    "post-type"
-  ).value =
-    "Publication";
-
-  document.getElementById(
-    "post-title"
-  ).value = "";
-
-  document.getElementById(
-    "post-content"
-  ).value = "";
-
-  document.getElementById(
-    "post-link"
-  ).value = "";
-
-  document.getElementById(
-    "post-pin"
-  ).checked = false;
-
-  document.getElementById(
-    "composer-message"
-  ).innerHTML = "";
+  document.getElementById("post-title").value = "";
+  document.getElementById("post-content").value = "";
+  document.getElementById("post-link").value = "";
+  document.getElementById("post-pin").checked = false;
+  document.getElementById("composer-message").innerHTML = "";
 }
-
 
 async function createPost() {
 
-  if (
-    !currentChannel ||
-    !currentUserId
-  ) {
-    return;
-  }
+  if (!currentChannel || !currentUserId) return;
 
   const title =
-    document
-      .getElementById(
-        "post-title"
-      )
-      .value
-      .trim();
+    document.getElementById("post-title").value.trim();
 
   const content =
-    document
-      .getElementById(
-        "post-content"
-      )
-      .value
-      .trim();
-
-  const type =
-    document
-      .getElementById(
-        "post-type"
-      )
-      .value;
+    document.getElementById("post-content").value.trim();
 
   const link =
-    document
-      .getElementById(
-        "post-link"
-      )
-      .value
-      .trim();
+    document.getElementById("post-link").value.trim();
 
   const pin =
-    document
-      .getElementById(
-        "post-pin"
-      )
-      .checked;
+    document.getElementById("post-pin").checked;
 
-  if (
-    !title ||
-    !content
-  ) {
-
-    document.getElementById(
-      "composer-message"
-    ).innerHTML =
-      `
-        <div class="error">
-          Le titre et le message sont obligatoires.
-        </div>
-      `;
-
+  if (!title || !content) {
+    document.getElementById("composer-message").innerHTML =
+      '<div class="error">Le titre et le message sont obligatoires.</div>';
     return;
   }
 
-  try {
+  await grist.docApi.applyUserActions([
+    [
+      "AddRecord",
+      TABLES.posts,
+      null,
+      {
+        Canal: currentChannel.id,
+        Auteur: currentUserId,
+        Date_creation: Date.now() / 1000,
+        Titre: title,
+        Contenu: content,
+        Epingle: pin,
+        Lien: link,
+        Archive: false
+      }
+    ]
+  ]);
 
-    await grist.docApi.applyUserActions([
-      [
-        "AddRecord",
-        TABLES.posts,
-        null,
-        {
-          Canal:
-            currentChannel.id,
-
-          Auteur:
-            currentUserId,
-
-          Date_creation:
-            Date.now() / 1000,
-
-          Titre:
-            title,
-
-          Contenu:
-            content,
-
-          Type_publication:
-            type,
-
-          Epingle:
-            pin,
-
-          Lien:
-            link,
-
-          Archive:
-            false
-        }
-      ]
-    ]);
-
-    closeComposer();
-
-    await loadData();
-
-  } catch (error) {
-
-    console.error(error);
-
-    document.getElementById(
-      "composer-message"
-    ).innerHTML =
-      `
-        <div class="error">
-          Impossible de publier :
-          ${escapeHtml(
-            error.message ||
-            error
-          )}
-        </div>
-      `;
-  }
+  closeComposer();
+  await loadData();
 }
 
-
-/* =========================================================
+/* =========================
    COMMENTAIRES
-========================================================= */
+========================= */
 
 async function createComment(
   postId,
@@ -1075,253 +619,117 @@ async function createComment(
   content
 ) {
 
-  try {
+  await grist.docApi.applyUserActions([
+    [
+      "AddRecord",
+      TABLES.comments,
+      null,
+      {
+        Publication: postId,
+        Auteur: authorId,
+        Date_creation: Date.now() / 1000,
+        Contenu: content,
+        Supprime: false
+      }
+    ]
+  ]);
 
-    await grist.docApi.applyUserActions([
-      [
-        "AddRecord",
-        TABLES.comments,
-        null,
-        {
-          Publication:
-            postId,
-
-          Auteur:
-            authorId,
-
-          Date_creation:
-            Date.now() / 1000,
-
-          Contenu:
-            content,
-
-          Supprime:
-            false
-        }
-      ]
-    ]);
-
-    await loadData();
-
-  } catch (error) {
-
-    console.error(error);
-
-    alert(
-      "Impossible d'ajouter la réponse : " +
-      (
-        error.message ||
-        error
-      )
-    );
-  }
+  await loadData();
 }
 
-
-/* =========================================================
-   MODIFICATION
-========================================================= */
+/* =========================
+   EDITION
+========================= */
 
 function openPostEditor(postId) {
 
   const post =
-    posts.find(
-      item =>
-        Number(item.id) ===
-        Number(postId)
-    );
+    posts.find(p => p.id === postId);
 
-  if (
-    !post ||
-    !isMine(post.Auteur)
-  ) {
-    return;
-  }
+  if (!post || !isMine(post.Auteur)) return;
 
   editState = {
     type: "post",
-    id: post.id
+    id: postId
   };
 
-  document.getElementById(
-    "edit-modal-title"
-  ).textContent =
+  document.getElementById("edit-modal-title").textContent =
     "Modifier la publication";
 
-  document.getElementById(
-    "edit-post-fields"
-  ).classList.remove(
-    "hidden"
-  );
+  document.getElementById("edit-title-field")
+    .classList.remove("hidden");
 
-  document.getElementById(
-    "edit-link-field"
-  ).classList.remove(
-    "hidden"
-  );
+  document.getElementById("edit-link-field")
+    .classList.remove("hidden");
 
-  document.getElementById(
-    "edit-pin-field"
-  ).classList.remove(
-    "hidden"
-  );
+  document.getElementById("edit-pin-field")
+    .classList.remove("hidden");
 
-  document.getElementById(
-    "edit-type"
-  ).value =
-    post.Type_publication ||
-    "Publication";
-
-  document.getElementById(
-    "edit-title"
-  ).value =
+  document.getElementById("edit-title").value =
     post.Titre || "";
 
-  document.getElementById(
-    "edit-content"
-  ).value =
+  document.getElementById("edit-content").value =
     post.Contenu || "";
 
-  document.getElementById(
-    "edit-link"
-  ).value =
+  document.getElementById("edit-link").value =
     post.Lien || "";
 
-  document.getElementById(
-    "edit-pin"
-  ).checked =
+  document.getElementById("edit-pin").checked =
     !!post.Epingle;
 
-  document.getElementById(
-    "edit-modal"
-  ).classList.remove(
-    "hidden"
-  );
+  document.getElementById("edit-modal")
+    .classList.remove("hidden");
 }
 
-
-function openCommentEditor(
-  commentId
-) {
+function openCommentEditor(commentId) {
 
   const comment =
-    comments.find(
-      item =>
-        Number(item.id) ===
-        Number(commentId)
-    );
+    comments.find(c => c.id === commentId);
 
-  if (
-    !comment ||
-    !isMine(comment.Auteur)
-  ) {
-    return;
-  }
+  if (!comment || !isMine(comment.Auteur)) return;
 
   editState = {
     type: "comment",
-    id: comment.id
+    id: commentId
   };
 
-  document.getElementById(
-    "edit-modal-title"
-  ).textContent =
+  document.getElementById("edit-modal-title").textContent =
     "Modifier la réponse";
 
-  document.getElementById(
-    "edit-post-fields"
-  ).classList.add(
-    "hidden"
-  );
+  document.getElementById("edit-title-field")
+    .classList.add("hidden");
 
-  document.getElementById(
-    "edit-link-field"
-  ).classList.add(
-    "hidden"
-  );
+  document.getElementById("edit-link-field")
+    .classList.add("hidden");
 
-  document.getElementById(
-    "edit-pin-field"
-  ).classList.add(
-    "hidden"
-  );
+  document.getElementById("edit-pin-field")
+    .classList.add("hidden");
 
-  document.getElementById(
-    "edit-content"
-  ).value =
+  document.getElementById("edit-content").value =
     comment.Contenu || "";
 
-  document.getElementById(
-    "edit-modal"
-  ).classList.remove(
-    "hidden"
-  );
+  document.getElementById("edit-modal")
+    .classList.remove("hidden");
 }
-
 
 function closeEditModal() {
 
   editState = null;
 
-  document
-    .getElementById(
-      "edit-modal"
-    )
-    .classList.add(
-      "hidden"
-    );
+  document.getElementById("edit-modal")
+    .classList.add("hidden");
 }
-
 
 async function saveEdit() {
 
-  if (!editState) {
-    return;
-  }
+  if (!editState) return;
 
-  const content =
-    document
-      .getElementById(
-        "edit-content"
-      )
-      .value
-      .trim();
-
-  if (!content) {
-    return;
-  }
-
-
-  if (
-    editState.type ===
-    "post"
-  ) {
+  if (editState.type === "post") {
 
     const post =
-      posts.find(
-        item =>
-          Number(item.id) ===
-          Number(editState.id)
-      );
+      posts.find(p => p.id === editState.id);
 
-    if (
-      !post ||
-      !isMine(post.Auteur)
-    ) {
-      return;
-    }
-
-    const title =
-      document
-        .getElementById(
-          "edit-title"
-        )
-        .value
-        .trim();
-
-    if (!title) {
-      return;
-    }
+    if (!post || !isMine(post.Auteur)) return;
 
     await grist.docApi.applyUserActions([
       [
@@ -1330,31 +738,18 @@ async function saveEdit() {
         post.id,
         {
           Titre:
-            title,
+            document.getElementById("edit-title").value.trim(),
 
           Contenu:
-            content,
-
-          Type_publication:
-            document.getElementById(
-              "edit-type"
-            ).value,
+            document.getElementById("edit-content").value.trim(),
 
           Lien:
-            document
-              .getElementById(
-                "edit-link"
-              )
-              .value
-              .trim(),
+            document.getElementById("edit-link").value.trim(),
 
           Epingle:
-            document.getElementById(
-              "edit-pin"
-            ).checked,
+            document.getElementById("edit-pin").checked,
 
-          Modifie:
-            true,
+          Modifie: true,
 
           Date_modification:
             Date.now() / 1000
@@ -1365,20 +760,9 @@ async function saveEdit() {
   } else {
 
     const comment =
-      comments.find(
-        item =>
-          Number(item.id) ===
-          Number(editState.id)
-      );
+      comments.find(c => c.id === editState.id);
 
-    if (
-      !comment ||
-      !isMine(
-        comment.Auteur
-      )
-    ) {
-      return;
-    }
+    if (!comment || !isMine(comment.Auteur)) return;
 
     await grist.docApi.applyUserActions([
       [
@@ -1387,10 +771,9 @@ async function saveEdit() {
         comment.id,
         {
           Contenu:
-            content,
+            document.getElementById("edit-content").value.trim(),
 
-          Modifie:
-            true,
+          Modifie: true,
 
           Date_modification:
             Date.now() / 1000
@@ -1400,38 +783,28 @@ async function saveEdit() {
   }
 
   closeEditModal();
-
   await loadData();
 }
 
-
-/* =========================================================
-   SUPPRESSION / ÉPINGLAGE
-========================================================= */
+/* =========================
+   SUPPRESSION / EPINGLAGE
+========================= */
 
 async function deletePost(postId) {
 
   const post =
-    posts.find(
-      item =>
-        Number(item.id) ===
-        Number(postId)
-    );
+    posts.find(p => p.id === postId);
 
-  if (
-    !post ||
-    !isMine(post.Auteur)
-  ) {
-    return;
-  }
+  if (!post || !isMine(post.Auteur)) return;
 
-  if (
-    !confirm(
-      "Supprimer cette publication ?"
-    )
-  ) {
-    return;
-  }
+  if (!confirm(
+    "Supprimer cette publication ?"
+  )) return;
+
+  /*
+   * Suppression logique :
+   * on archive plutôt que de détruire la ligne.
+   */
 
   await grist.docApi.applyUserActions([
     [
@@ -1447,32 +820,16 @@ async function deletePost(postId) {
   await loadData();
 }
 
-
-async function deleteComment(
-  commentId
-) {
+async function deleteComment(commentId) {
 
   const comment =
-    comments.find(
-      item =>
-        Number(item.id) ===
-        Number(commentId)
-    );
+    comments.find(c => c.id === commentId);
 
-  if (
-    !comment ||
-    !isMine(comment.Auteur)
-  ) {
-    return;
-  }
+  if (!comment || !isMine(comment.Auteur)) return;
 
-  if (
-    !confirm(
-      "Supprimer cette réponse ?"
-    )
-  ) {
-    return;
-  }
+  if (!confirm(
+    "Supprimer cette réponse ?"
+  )) return;
 
   await grist.docApi.applyUserActions([
     [
@@ -1488,22 +845,12 @@ async function deleteComment(
   await loadData();
 }
 
-
 async function togglePin(postId) {
 
   const post =
-    posts.find(
-      item =>
-        Number(item.id) ===
-        Number(postId)
-    );
+    posts.find(p => p.id === postId);
 
-  if (
-    !post ||
-    !isMine(post.Auteur)
-  ) {
-    return;
-  }
+  if (!post || !isMine(post.Auteur)) return;
 
   await grist.docApi.applyUserActions([
     [
@@ -1511,8 +858,7 @@ async function togglePin(postId) {
       TABLES.posts,
       post.id,
       {
-        Epingle:
-          !post.Epingle
+        Epingle: !post.Epingle
       }
     ]
   ]);
@@ -1520,10 +866,9 @@ async function togglePin(postId) {
   await loadData();
 }
 
-
-/* =========================================================
+/* =========================
    CHARGEMENT
-========================================================= */
+========================= */
 
 async function loadData() {
 
@@ -1533,12 +878,6 @@ async function loadData() {
       currentChannel
         ? currentChannel.id
         : null;
-
-    /*
-     * IMPORTANT :
-     * exactement les quatre fetchTable
-     * du socle qui fonctionnait.
-     */
 
     const [
       channelsRaw,
@@ -1547,2587 +886,103 @@ async function loadData() {
       usersRaw
     ] = await Promise.all([
 
-      grist.docApi.fetchTable(
-        TABLES.channels
-      ),
-
-      grist.docApi.fetchTable(
-        TABLES.posts
-      ),
-
-      grist.docApi.fetchTable(
-        TABLES.comments
-      ),
-
-      grist.docApi.fetchTable(
-        TABLES.users
-      )
+      grist.docApi.fetchTable(TABLES.channels),
+      grist.docApi.fetchTable(TABLES.posts),
+      grist.docApi.fetchTable(TABLES.comments),
+      grist.docApi.fetchTable(TABLES.users)
 
     ]);
 
     channels =
-      rowsFromTable(
-        channelsRaw
-      );
+      rowsFromTable(channelsRaw);
 
     posts =
-      rowsFromTable(
-        postsRaw
-      );
+      rowsFromTable(postsRaw);
 
     comments =
-      rowsFromTable(
-        commentsRaw
-      );
+      rowsFromTable(commentsRaw);
 
     users =
-      rowsFromTable(
-        usersRaw
-      );
-
+      rowsFromTable(usersRaw);
 
     if (
       !currentUserId ||
-      !users.some(
-        user =>
-          Number(user.id) ===
-          Number(currentUserId)
-      )
+      !users.some(u => u.id === currentUserId)
     ) {
-
       const firstActive =
-        users.find(
-          user =>
-            user.Actif !== false
-        );
+        users.find(u => u.Actif !== false);
 
       currentUserId =
-        firstActive
-          ? firstActive.id
-          : null;
+        firstActive ? firstActive.id : null;
     }
 
-
     if (previousChannelId) {
-
       currentChannel =
         channels.find(
           channel =>
-            Number(channel.id) ===
-            Number(previousChannelId)
+            channel.id === previousChannelId
         ) || null;
     }
 
-
     if (!currentChannel) {
-
       currentChannel =
         channels.find(
           channel =>
-            String(
-              channel.Nom
-            )
-              .toLowerCase() ===
-            "général"
+            String(channel.Nom)
+              .toLowerCase() === "général"
         ) ||
         channels[0] ||
         null;
     }
 
-
     renderCurrentUserSelector();
-
     renderChannels();
-
     renderFeed();
 
   } catch (error) {
 
     console.error(error);
 
-    document.getElementById(
-      "feed"
-    ).innerHTML =
-      `
-        <div class="message error">
-
-          <strong>
-            Impossible de lire les données Grist.
-          </strong>
-
-          <br><br>
-
-          ${escapeHtml(
-            error.message ||
-            error
-          )}
-
-        </div>
-      `;
-  }
-}
-
-
-/* =========================================================
-   ÉVÉNEMENTS GÉNÉRAUX
-========================================================= */
-
-document
-  .getElementById(
-    "new-post-button"
-  )
-  .addEventListener(
-    "click",
-    openComposer
-  );
-
-
-document
-  .getElementById(
-    "close-composer"
-  )
-  .addEventListener(
-    "click",
-    closeComposer
-  );
-
-
-document
-  .getElementById(
-    "cancel-post"
-  )
-  .addEventListener(
-    "click",
-    closeComposer
-  );
-
-
-document
-  .getElementById(
-    "publish-post"
-  )
-  .addEventListener(
-    "click",
-    createPost
-  );
-
-
-document
-  .getElementById(
-    "close-edit-modal"
-  )
-  .addEventListener(
-    "click",
-    closeEditModal
-  );
-
-
-document
-  .getElementById(
-    "cancel-edit"
-  )
-  .addEventListener(
-    "click",
-    closeEditModal
-  );
-
-
-document
-  .getElementById(
-    "save-edit"
-  )
-  .addEventListener(
-    "click",
-    saveEdit
-  );
-
-
-document
-  .querySelector(
-    ".modal-backdrop"
-  )
-  .addEventListener(
-    "click",
-    closeEditModal
-  );
-
-
-/* =========================================================
-   DÉMARRAGE
-========================================================= */
-
-loadData();const TABLES = {
-  users: "Utilisateurs",
-  channels: "Canaux",
-  memberships: "Membres_canaux",
-  posts: "Publications",
-  comments: "Commentaires"
-};
-
-let channels = [];
-let memberships = [];
-let posts = [];
-let comments = [];
-let users = [];
-
-let currentChannel = null;
-let currentUserId = null;
-
-let postQuill = null;
-let editQuill = null;
-
-let editState = null;
-
-const replyQuills = new Map();
-const expandedThreads = new Set();
-
-grist.ready({
-  requiredAccess: "full"
-});
-
-
-/* ==========================================================
-   QUILL
-========================================================== */
-
-const POST_TOOLBAR = [
-  ["bold", "italic", "underline", "strike"],
-  [{ header: [2, 3, false] }],
-  [{ list: "ordered" }, { list: "bullet" }],
-  ["blockquote"],
-  ["link"],
-  ["clean"]
-];
-
-const REPLY_TOOLBAR = [
-  ["bold", "italic", "underline"],
-  [{ list: "bullet" }],
-  ["link"],
-  ["clean"]
-];
-
-function initEditors() {
-
-  postQuill = new Quill(
-    "#post-editor",
-    {
-      theme: "snow",
-      placeholder: "Écrivez votre publication…",
-      modules: {
-        toolbar: POST_TOOLBAR
-      }
-    }
-  );
-
-  editQuill = new Quill(
-    "#edit-editor",
-    {
-      theme: "snow",
-      placeholder: "Modifier le message…",
-      modules: {
-        toolbar: POST_TOOLBAR
-      }
-    }
-  );
-}
-
-
-/* ==========================================================
-   OUTILS GRIST
-========================================================== */
-
-function rowsFromTable(table) {
-
-  if (!table || !table.id) {
-    return [];
-  }
-
-  return table.id.map(
-    (id, index) => {
-
-      const row = { id };
-
-      Object.keys(table).forEach(
-        column => {
-
-          if (column !== "id") {
-            row[column] =
-              table[column][index];
-          }
-
-        }
-      );
-
-      return row;
-    }
-  );
-}
-
-
-/* ==========================================================
-   UTILISATEURS
-========================================================== */
-
-function getUser(id) {
-
-  return users.find(
-    user =>
-      Number(user.id) === Number(id)
-  );
-}
-
-function getUserName(id) {
-
-  const user =
-    getUser(id);
-
-  if (!user) {
-    return "Utilisateur";
-  }
-
-  return (
-    user.Nom_affiche ||
-    [
-      user.Prenom,
-      user.Nom
-    ]
-      .filter(Boolean)
-      .join(" ") ||
-    "Utilisateur"
-  );
-}
-
-function getInitials(id) {
-
-  const user =
-    getUser(id);
-
-  if (!user) {
-    return "?";
-  }
-
-  if (user.Initiales) {
-    return user.Initiales;
-  }
-
-  return getUserName(id)
-    .split(" ")
-    .map(part => part[0])
-    .join("")
-    .substring(0, 2)
-    .toUpperCase();
-}
-
-function isMine(authorId) {
-
-  return (
-    Number(authorId) ===
-    Number(currentUserId)
-  );
-}
-
-
-/* ==========================================================
-   MEMBRES / ADMINISTRATEURS
-========================================================== */
-
-function getMembership(
-  userId,
-  channelId
-) {
-
-  return memberships.find(
-    membership =>
-      Number(membership.Utilisateur) ===
-        Number(userId) &&
-
-      Number(membership.Canal) ===
-        Number(channelId) &&
-
-      membership.Actif !== false
-  );
-}
-
-function isChannelAdmin(
-  userId,
-  channelId
-) {
-
-  const membership =
-    getMembership(
-      userId,
-      channelId
-    );
-
-  if (!membership) {
-    return false;
-  }
-
-  return (
-    String(
-      membership.Role_canal || ""
-    )
-      .toLowerCase()
-      .includes("admin")
-  );
-}
-
-
-/* ==========================================================
-   DATE
-========================================================== */
-
-function toDate(value) {
-
-  if (!value) {
-    return null;
-  }
-
-  if (
-    typeof value === "number" &&
-    value < 100000000000
-  ) {
-    return new Date(
-      value * 1000
-    );
-  }
-
-  return new Date(value);
-}
-
-function relativeDate(value) {
-
-  const date =
-    toDate(value);
-
-  if (
-    !date ||
-    Number.isNaN(date.getTime())
-  ) {
-    return "";
-  }
-
-  const now =
-    new Date();
-
-  const diff =
-    now.getTime() -
-    date.getTime();
-
-  const minutes =
-    Math.floor(
-      diff / 60000
-    );
-
-  if (minutes < 1) {
-    return "à l’instant";
-  }
-
-  if (minutes < 60) {
-    return `il y a ${minutes} min`;
-  }
-
-  const hours =
-    Math.floor(
-      minutes / 60
-    );
-
-  if (hours < 24) {
-    return `il y a ${hours} h`;
-  }
-
-  const yesterday =
-    new Date(now);
-
-  yesterday.setDate(
-    now.getDate() - 1
-  );
-
-  if (
-    date.toDateString() ===
-    yesterday.toDateString()
-  ) {
-    return (
-      "hier à " +
-      new Intl.DateTimeFormat(
-        "fr-FR",
-        {
-          hour: "2-digit",
-          minute: "2-digit"
-        }
-      ).format(date)
-    );
-  }
-
-  if (hours < 168) {
-
-    return new Intl.DateTimeFormat(
-      "fr-FR",
-      {
-        weekday: "long",
-        hour: "2-digit",
-        minute: "2-digit"
-      }
-    ).format(date);
-
-  }
-
-  return new Intl.DateTimeFormat(
-    "fr-FR",
-    {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit"
-    }
-  ).format(date);
-}
-
-
-/* ==========================================================
-   HTML / RICH TEXT
-========================================================== */
-
-function escapeHtml(value) {
-
-  if (
-    value === null ||
-    value === undefined
-  ) {
-    return "";
-  }
-
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-function looksLikeHtml(value) {
-
-  return /<\/?[a-z][\s\S]*>/i
-    .test(
-      String(value || "")
-    );
-}
-
-function normalizeContent(value) {
-
-  if (!value) {
-    return "";
-  }
-
-  if (looksLikeHtml(value)) {
-    return value;
-  }
-
-  return (
-    "<p>" +
-    escapeHtml(value)
-      .replaceAll(
-        "\n",
-        "<br>"
-      ) +
-    "</p>"
-  );
-}
-
-function sanitizeHtml(value) {
-
-  return DOMPurify.sanitize(
-    normalizeContent(value),
-    {
-      USE_PROFILES: {
-        html: true
-      }
-    }
-  );
-}
-
-
-/*
- * Mentions V0.4 :
- * @Jules, @Sylvain, etc.
- *
- * Elles sont visuelles uniquement.
- * Les vraies notifications viendront plus tard.
- */
-
-function decorateMentions(html) {
-
-  const container =
-    document.createElement("div");
-
-  container.innerHTML =
-    sanitizeHtml(html);
-
-  const mentionNames =
-    users
-      .map(user => user.Prenom)
-      .filter(Boolean)
-      .sort(
-        (a, b) =>
-          b.length - a.length
-      );
-
-  if (!mentionNames.length) {
-    return container.innerHTML;
-  }
-
-  const escapedNames =
-    mentionNames.map(
-      name =>
-        name.replace(
-          /[.*+?^${}()|[\]\\]/g,
-          "\\$&"
-        )
-    );
-
-  const regex =
-    new RegExp(
-      `@(${escapedNames.join("|")})\\b`,
-      "gi"
-    );
-
-  const walker =
-    document.createTreeWalker(
-      container,
-      NodeFilter.SHOW_TEXT
-    );
-
-  const nodes = [];
-
-  while (walker.nextNode()) {
-    nodes.push(
-      walker.currentNode
-    );
-  }
-
-  nodes.forEach(node => {
-
-    const text =
-      node.nodeValue;
-
-    if (!regex.test(text)) {
-      regex.lastIndex = 0;
-      return;
-    }
-
-    regex.lastIndex = 0;
-
-    const fragment =
-      document.createDocumentFragment();
-
-    let lastIndex = 0;
-
-    text.replace(
-      regex,
-      (match, name, offset) => {
-
-        fragment.appendChild(
-          document.createTextNode(
-            text.slice(
-              lastIndex,
-              offset
-            )
-          )
-        );
-
-        const span =
-          document.createElement("span");
-
-        span.className =
-          "mention";
-
-        span.textContent =
-          match;
-
-        fragment.appendChild(span);
-
-        lastIndex =
-          offset +
-          match.length;
-
-      }
-    );
-
-    fragment.appendChild(
-      document.createTextNode(
-        text.slice(lastIndex)
-      )
-    );
-
-    node.parentNode.replaceChild(
-      fragment,
-      node
-    );
-  });
-
-  return container.innerHTML;
-}
-
-function editorIsEmpty(quill) {
-
-  return (
-    quill
-      .getText()
-      .trim()
-      .length === 0
-  );
-}
-
-function getEditorHtml(quill) {
-
-  return DOMPurify.sanitize(
-    quill.root.innerHTML
-  );
-}
-
-
-/* ==========================================================
-   UTILISATEUR ACTIF
-========================================================== */
-
-function renderCurrentUserSelector() {
-
-  const select =
-    document.getElementById(
-      "current-user-select"
-    );
-
-  select.innerHTML = "";
-
-  const activeUsers =
-    users.filter(
-      user =>
-        user.Actif !== false
-    );
-
-  activeUsers.forEach(
-    user => {
-
-      const option =
-        document.createElement(
-          "option"
-        );
-
-      option.value =
-        user.id;
-
-      option.textContent =
-        getUserName(user.id);
-
-      select.appendChild(
-        option
-      );
-    }
-  );
-
-  if (
-    !currentUserId &&
-    activeUsers.length
-  ) {
-    currentUserId =
-      activeUsers[0].id;
-  }
-
-  select.value =
-    currentUserId || "";
-
-  select.onchange =
-    () => {
-
-      currentUserId =
-        Number(
-          select.value
-        );
-
-      closeComposer();
-
-      renderChannels();
-      renderFeed();
-
-    };
-
-  updateComposerPermissions();
-}
-
-
-/* ==========================================================
-   CANAUX
-========================================================== */
-
-function renderChannels() {
-
-  const container =
-    document.getElementById(
-      "channels"
-    );
-
-  container.innerHTML = "";
-
-  [...channels]
-    .sort(
-      (a, b) =>
-        (a.Ordre || 0) -
-        (b.Ordre || 0)
-    )
-    .forEach(
-      channel => {
-
-        const button =
-          document.createElement(
-            "button"
-          );
-
-        button.className =
-          "channel" +
-          (
-            currentChannel &&
-            Number(
-              currentChannel.id
-            ) ===
-            Number(
-              channel.id
-            )
-              ? " active"
-              : ""
-          );
-
-        const isPrivate =
-          String(
-            channel.Type_acces ||
-            ""
-          )
-            .toLowerCase()
-            .includes(
-              "encadrement"
-            );
-
-        button.textContent =
-          (
-            isPrivate
-              ? "🔒 "
-              : "# "
-          ) +
-          (
-            channel.Nom ||
-            "Canal"
-          );
-
-        button.addEventListener(
-          "click",
-          () => {
-
-            currentChannel =
-              channel;
-
-            closeComposer();
-
-            renderChannels();
-            renderFeed();
-
-            updateComposerPermissions();
-
-          }
-        );
-
-        container.appendChild(
-          button
-        );
-      }
-    );
-}
-
-
-/* ==========================================================
-   FEED
-========================================================== */
-
-function renderFeed() {
-
-  destroyReplyEditors();
-
-  const feed =
-    document.getElementById(
-      "feed"
-    );
-
-  const title =
-    document.getElementById(
-      "channel-title"
-    );
-
-  const description =
-    document.getElementById(
-      "channel-description"
-    );
-
-  if (!currentChannel) {
-
-    feed.innerHTML =
-      '<div class="message">Aucun canal disponible.</div>';
-
-    return;
-  }
-
-  title.textContent =
-    "# " +
-    currentChannel.Nom;
-
-  description.textContent =
-    currentChannel.Description ||
-    "";
-
-  let channelPosts =
-    posts.filter(
-      post =>
-        Number(post.Canal) ===
-          Number(
-            currentChannel.id
-          ) &&
-        !post.Archive
-    );
-
-  channelPosts.sort(
-    (a, b) => {
-
-      if (
-        !!a.Epingle !==
-        !!b.Epingle
-      ) {
-        return (
-          a.Epingle
-            ? -1
-            : 1
-        );
-      }
-
-      const aDate =
-        toDate(
-          a.Date_creation
-        );
-
-      const bDate =
-        toDate(
-          b.Date_creation
-        );
-
-      return (
-        (bDate?.getTime() || 0) -
-        (aDate?.getTime() || 0)
-      );
-    }
-  );
-
-  if (!channelPosts.length) {
-
-    feed.innerHTML =
-      '<div class="message">Aucune publication dans ce canal.</div>';
-
-    return;
-  }
-
-  feed.innerHTML = "";
-
-  channelPosts.forEach(
-    post => {
-
-      const article =
-        renderPost(post);
-
-      feed.appendChild(
-        article
-      );
-
-    }
-  );
-}
-
-function renderPost(post) {
-
-  const article =
-    document.createElement(
-      "article"
-    );
-
-  const type =
-    post.Type_publication ||
-    "Publication";
-
-  const announcement =
-    String(type)
-      .toLowerCase() ===
-    "annonce";
-
-  article.className =
-    "post" +
-    (
-      announcement
-        ? " announcement"
-        : ""
-    );
-
-  article.dataset.postId =
-    post.id;
-
-  const postComments =
-    comments
-      .filter(
-        comment =>
-          Number(
-            comment.Publication
-          ) ===
-            Number(post.id) &&
-          !comment.Supprime
-      )
-      .sort(
-        (a, b) =>
-          (toDate(
-            a.Date_creation
-          )?.getTime() || 0) -
-          (toDate(
-            b.Date_creation
-          )?.getTime() || 0)
-      );
-
-  const canEdit =
-    isMine(post.Auteur);
-
-  const canPin =
-    currentChannel &&
-    isChannelAdmin(
-      currentUserId,
-      currentChannel.id
-    );
-
-  const expanded =
-    expandedThreads.has(
-      Number(post.id)
-    );
-
-  article.innerHTML = `
-
-    ${
-      announcement
-        ? `
-          <div class="announcement-label">
-            📣 Annonce
-          </div>
-        `
-        : ""
-    }
-
-    ${
-      post.Epingle
-        ? `
-          <div class="pin">
-            📌 Publication épinglée
-          </div>
-        `
-        : ""
-    }
-
-    <div class="post-meta">
-
-      <div class="avatar">
-        ${escapeHtml(
-          getInitials(
-            post.Auteur
-          )
-        )}
-      </div>
-
-      <div>
-
-        <div class="author">
-          ${escapeHtml(
-            getUserName(
-              post.Auteur
-            )
-          )}
-        </div>
-
-        <div class="date">
-
-          ${escapeHtml(
-            relativeDate(
-              post.Date_creation
-            )
-          )}
-
-          ${
-            post.Modifie
-              ? " · modifié"
-              : ""
-          }
-
-        </div>
-
-      </div>
-
-    </div>
-
-    <div class="post-title">
-      ${escapeHtml(
-        post.Titre
-      )}
-    </div>
-
-    <div class="rich-content">
-      ${decorateMentions(
-        post.Contenu
-      )}
-    </div>
-
-    ${
-      post.Lien
-        ? `
-          <a
-            class="post-link"
-            href="${escapeHtml(
-              post.Lien
-            )}"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            🔗 Ouvrir le lien
-          </a>
-        `
-        : ""
-    }
-
-    <div class="post-actions">
-
-      ${
-        canEdit
-          ? `
-            <button
-              class="text-button edit-post"
-              data-post-id="${post.id}"
-            >
-              Modifier
-            </button>
-
-            <button
-              class="text-button danger-button delete-post"
-              data-post-id="${post.id}"
-            >
-              Supprimer
-            </button>
-          `
-          : ""
-      }
-
-      ${
-        canPin
-          ? `
-            <button
-              class="text-button toggle-pin"
-              data-post-id="${post.id}"
-            >
-              ${
-                post.Epingle
-                  ? "Désépingler"
-                  : "Épingler"
-              }
-            </button>
-          `
-          : ""
-      }
-
-    </div>
-
-    <div class="thread-divider"></div>
-
-    <div class="comments-header">
-
-      <span class="comments-count">
-
-        ${
-          postComments.length === 0
-            ? "Aucune réponse"
-            : postComments.length === 1
-              ? "1 réponse"
-              : `${postComments.length} réponses`
-        }
-
-      </span>
-
-      ${
-        postComments.length > 2
-          ? `
-            <button
-              class="text-button toggle-comments"
-              data-post-id="${post.id}"
-            >
-              ${
-                expanded
-                  ? "Réduire"
-                  : `Afficher les ${postComments.length} réponses`
-              }
-            </button>
-          `
-          : ""
-      }
-
-    </div>
-
-    <div
-      class="comments-list ${
-        expanded
-          ? ""
-          : "collapsed"
-      }"
-    >
-      ${postComments
-        .map(
-          comment =>
-            renderCommentHtml(
-              comment
-            )
-        )
-        .join("")
-      }
-    </div>
-
-    <button
-      class="text-button reply-trigger"
-      data-post-id="${post.id}"
-    >
-      ↩ Répondre
-    </button>
-
-    <div
-      id="reply-${post.id}"
-      class="reply-composer hidden"
-    >
-
-      <div
-        id="reply-editor-${post.id}"
-        class="reply-editor"
-      ></div>
-
-      <div class="reply-actions">
-
-        <button
-          class="secondary cancel-reply"
-          data-post-id="${post.id}"
-        >
-          Annuler
-        </button>
-
-        <button
-          class="primary send-reply"
-          data-post-id="${post.id}"
-        >
-          Envoyer
-        </button>
-
-      </div>
-
-    </div>
-  `;
-
-  attachPostEvents(
-    article,
-    post
-  );
-
-  return article;
-}
-
-function renderCommentHtml(
-  comment
-) {
-
-  const canEdit =
-    isMine(
-      comment.Auteur
-    );
-
-  return `
-    <div
-      class="comment"
-      data-comment-id="${comment.id}"
-    >
-
-      <div class="comment-header">
-
-        <span class="comment-author">
-          ${escapeHtml(
-            getUserName(
-              comment.Auteur
-            )
-          )}
-        </span>
-
-        <span class="comment-date">
-          ${escapeHtml(
-            relativeDate(
-              comment.Date_creation
-            )
-          )}
-        </span>
-
-        ${
-          comment.Modifie
-            ? `
-              <span class="edited">
-                modifié
-              </span>
-            `
-            : ""
-        }
-
-      </div>
-
-      <div class="comment-content rich-content">
-        ${decorateMentions(
-          comment.Contenu
-        )}
-      </div>
-
-      ${
-        canEdit
-          ? `
-            <div class="comment-actions">
-
-              <button
-                class="text-button edit-comment"
-                data-comment-id="${comment.id}"
-              >
-                Modifier
-              </button>
-
-              <button
-                class="text-button danger-button delete-comment"
-                data-comment-id="${comment.id}"
-              >
-                Supprimer
-              </button>
-
-            </div>
-          `
-          : ""
-      }
-
-    </div>
-  `;
-}
-
-
-/* ==========================================================
-   EVENEMENTS THREAD
-========================================================== */
-
-function attachPostEvents(
-  article,
-  post
-) {
-
-  const replyTrigger =
-    article.querySelector(
-      ".reply-trigger"
-    );
-
-  replyTrigger.addEventListener(
-    "click",
-    () => openReplyEditor(
-      article,
-      post.id
-    )
-  );
-
-  const cancelReply =
-    article.querySelector(
-      ".cancel-reply"
-    );
-
-  cancelReply.addEventListener(
-    "click",
-    () => closeReplyEditor(
-      post.id
-    )
-  );
-
-  const sendReply =
-    article.querySelector(
-      ".send-reply"
-    );
-
-  sendReply.addEventListener(
-    "click",
-    () => sendReplyForPost(
-      post.id
-    )
-  );
-
-  const editPost =
-    article.querySelector(
-      ".edit-post"
-    );
-
-  if (editPost) {
-
-    editPost.addEventListener(
-      "click",
-      () =>
-        openPostEditor(
-          post.id
-        )
-    );
-
-  }
-
-  const deletePostButton =
-    article.querySelector(
-      ".delete-post"
-    );
-
-  if (deletePostButton) {
-
-    deletePostButton.addEventListener(
-      "click",
-      () =>
-        deletePost(
-          post.id
-        )
-    );
-
-  }
-
-  const pinButton =
-    article.querySelector(
-      ".toggle-pin"
-    );
-
-  if (pinButton) {
-
-    pinButton.addEventListener(
-      "click",
-      () =>
-        togglePin(
-          post.id
-        )
-    );
-
-  }
-
-  const toggleComments =
-    article.querySelector(
-      ".toggle-comments"
-    );
-
-  if (toggleComments) {
-
-    toggleComments.addEventListener(
-      "click",
-      () => {
-
-        const id =
-          Number(post.id);
-
-        if (
-          expandedThreads.has(id)
-        ) {
-          expandedThreads.delete(id);
-        } else {
-          expandedThreads.add(id);
-        }
-
-        renderFeed();
-
-      }
-    );
-
-  }
-
-  article
-    .querySelectorAll(
-      ".edit-comment"
-    )
-    .forEach(
-      button => {
-
-        button.addEventListener(
-          "click",
-          () =>
-            openCommentEditor(
-              Number(
-                button.dataset.commentId
-              )
-            )
-        );
-
-      }
-    );
-
-  article
-    .querySelectorAll(
-      ".delete-comment"
-    )
-    .forEach(
-      button => {
-
-        button.addEventListener(
-          "click",
-          () =>
-            deleteComment(
-              Number(
-                button.dataset.commentId
-              )
-            )
-        );
-
-      }
-    );
-}
-
-
-/* ==========================================================
-   REPONSES RICH TEXT
-========================================================== */
-
-function openReplyEditor(
-  article,
-  postId
-) {
-
-  const wrapper =
-    article.querySelector(
-      `#reply-${postId}`
-    );
-
-  wrapper.classList.remove(
-    "hidden"
-  );
-
-  if (
-    !replyQuills.has(
-      Number(postId)
-    )
-  ) {
-
-    const quill =
-      new Quill(
-        `#reply-editor-${postId}`,
-        {
-          theme: "snow",
-
-          placeholder:
-            `Répondre en tant que ${getUserName(
-              currentUserId
-            )}…`,
-
-          modules: {
-            toolbar:
-              REPLY_TOOLBAR
-          }
-        }
-      );
-
-    replyQuills.set(
-      Number(postId),
-      quill
-    );
-  }
-
-  replyQuills
-    .get(Number(postId))
-    .focus();
-}
-
-function closeReplyEditor(
-  postId
-) {
-
-  const wrapper =
-    document.getElementById(
-      `reply-${postId}`
-    );
-
-  if (wrapper) {
-    wrapper.classList.add(
-      "hidden"
-    );
-  }
-
-  const quill =
-    replyQuills.get(
-      Number(postId)
-    );
-
-  if (quill) {
-    quill.setContents([]);
-  }
-}
-
-function destroyReplyEditors() {
-
-  replyQuills.clear();
-}
-
-async function sendReplyForPost(
-  postId
-) {
-
-  const quill =
-    replyQuills.get(
-      Number(postId)
-    );
-
-  if (
-    !quill ||
-    editorIsEmpty(quill)
-  ) {
-    return;
-  }
-
-  const content =
-    getEditorHtml(quill);
-
-  await createComment(
-    postId,
-    currentUserId,
-    content
-  );
-}
-
-
-/* ==========================================================
-   NOUVELLE PUBLICATION
-========================================================== */
-
-function updateComposerPermissions() {
-
-  const wrapper =
-    document.getElementById(
-      "post-pin-wrapper"
-    );
-
-  if (
-    currentChannel &&
-    isChannelAdmin(
-      currentUserId,
-      currentChannel.id
-    )
-  ) {
-    wrapper.classList.remove(
-      "hidden"
-    );
-  } else {
-    wrapper.classList.add(
-      "hidden"
-    );
-
-    document.getElementById(
-      "post-pin"
-    ).checked = false;
-  }
-}
-
-function openComposer() {
-
-  updateComposerPermissions();
-
-  document
-    .getElementById(
-      "composer"
-    )
-    .classList.remove(
-      "hidden"
-    );
-
-  document
-    .getElementById(
-      "post-title"
-    )
-    .focus();
-}
-
-function closeComposer() {
-
-  document
-    .getElementById(
-      "composer"
-    )
-    .classList.add(
-      "hidden"
-    );
-
-  document.getElementById(
-    "post-title"
-  ).value = "";
-
-  document.getElementById(
-    "post-link"
-  ).value = "";
-
-  document.getElementById(
-    "post-type"
-  ).value =
-    "Publication";
-
-  document.getElementById(
-    "post-pin"
-  ).checked = false;
-
-  document.getElementById(
-    "composer-message"
-  ).innerHTML = "";
-
-  if (postQuill) {
-    postQuill.setContents([]);
-  }
-}
-
-async function createPost() {
-
-  if (
-    !currentChannel ||
-    !currentUserId
-  ) {
-    return;
-  }
-
-  const title =
-    document
-      .getElementById(
-        "post-title"
-      )
-      .value
-      .trim();
-
-  const type =
-    document
-      .getElementById(
-        "post-type"
-      )
-      .value;
-
-  const link =
-    document
-      .getElementById(
-        "post-link"
-      )
-      .value
-      .trim();
-
-  const canPin =
-    isChannelAdmin(
-      currentUserId,
-      currentChannel.id
-    );
-
-  const pin =
-    canPin &&
-    document.getElementById(
-      "post-pin"
-    ).checked;
-
-  if (
-    !title ||
-    editorIsEmpty(postQuill)
-  ) {
-
-    document.getElementById(
-      "composer-message"
-    ).innerHTML =
-      `
-        <div class="error">
-          Le titre et le message sont obligatoires.
-        </div>
-      `;
-
-    return;
-  }
-
-  const content =
-    getEditorHtml(
-      postQuill
-    );
-
-  try {
-
-    await grist.docApi.applyUserActions(
-      [
-        [
-          "AddRecord",
-          TABLES.posts,
-          null,
-          {
-            Canal:
-              currentChannel.id,
-
-            Auteur:
-              currentUserId,
-
-            Date_creation:
-              Date.now() / 1000,
-
-            Titre:
-              title,
-
-            Contenu:
-              content,
-
-            Type_publication:
-              type,
-
-            Epingle:
-              pin,
-
-            Lien:
-              link,
-
-            Archive:
-              false
-          }
-        ]
-      ]
-    );
-
-    closeComposer();
-
-    await loadData();
-
-  } catch (error) {
-
-    console.error(error);
-
-    document.getElementById(
-      "composer-message"
-    ).innerHTML =
-      `
-        <div class="error">
-          Impossible de publier :
-          ${escapeHtml(
-            error.message ||
-            error
-          )}
-        </div>
-      `;
-  }
-}
-
-
-/* ==========================================================
-   COMMENTAIRES
-========================================================== */
-
-async function createComment(
-  postId,
-  authorId,
-  content
-) {
-
-  await grist.docApi.applyUserActions(
-    [
-      [
-        "AddRecord",
-        TABLES.comments,
-        null,
-        {
-          Publication:
-            postId,
-
-          Auteur:
-            authorId,
-
-          Date_creation:
-            Date.now() / 1000,
-
-          Contenu:
-            DOMPurify.sanitize(
-              content
-            ),
-
-          Supprime:
-            false
-        }
-      ]
-    ]
-  );
-
-  expandedThreads.add(
-    Number(postId)
-  );
-
-  await loadData();
-}
-
-
-/* ==========================================================
-   EDITION
-========================================================== */
-
-function openPostEditor(
-  postId
-) {
-
-  const post =
-    posts.find(
-      p =>
-        Number(p.id) ===
-        Number(postId)
-    );
-
-  if (
-    !post ||
-    !isMine(
-      post.Auteur
-    )
-  ) {
-    return;
-  }
-
-  editState = {
-    type: "post",
-    id: post.id
-  };
-
-  document.getElementById(
-    "edit-modal-title"
-  ).textContent =
-    "Modifier la publication";
-
-  document.getElementById(
-    "edit-post-fields"
-  ).classList.remove(
-    "hidden"
-  );
-
-  document.getElementById(
-    "edit-link-field"
-  ).classList.remove(
-    "hidden"
-  );
-
-  const canPin =
-    isChannelAdmin(
-      currentUserId,
-      post.Canal
-    );
-
-  document.getElementById(
-    "edit-pin-field"
-  ).classList.toggle(
-    "hidden",
-    !canPin
-  );
-
-  document.getElementById(
-    "edit-type"
-  ).value =
-    post.Type_publication ||
-    "Publication";
-
-  document.getElementById(
-    "edit-title"
-  ).value =
-    post.Titre || "";
-
-  document.getElementById(
-    "edit-link"
-  ).value =
-    post.Lien || "";
-
-  document.getElementById(
-    "edit-pin"
-  ).checked =
-    !!post.Epingle;
-
-  editQuill.root.innerHTML =
-    sanitizeHtml(
-      post.Contenu
-    );
-
-  document.getElementById(
-    "edit-modal"
-  ).classList.remove(
-    "hidden"
-  );
-}
-
-function openCommentEditor(
-  commentId
-) {
-
-  const comment =
-    comments.find(
-      c =>
-        Number(c.id) ===
-        Number(commentId)
-    );
-
-  if (
-    !comment ||
-    !isMine(
-      comment.Auteur
-    )
-  ) {
-    return;
-  }
-
-  editState = {
-    type: "comment",
-    id: comment.id
-  };
-
-  document.getElementById(
-    "edit-modal-title"
-  ).textContent =
-    "Modifier la réponse";
-
-  document.getElementById(
-    "edit-post-fields"
-  ).classList.add(
-    "hidden"
-  );
-
-  document.getElementById(
-    "edit-link-field"
-  ).classList.add(
-    "hidden"
-  );
-
-  document.getElementById(
-    "edit-pin-field"
-  ).classList.add(
-    "hidden"
-  );
-
-  editQuill.root.innerHTML =
-    sanitizeHtml(
-      comment.Contenu
-    );
-
-  document.getElementById(
-    "edit-modal"
-  ).classList.remove(
-    "hidden"
-  );
-}
-
-function closeEditModal() {
-
-  editState = null;
-
-  document.getElementById(
-    "edit-modal"
-  ).classList.add(
-    "hidden"
-  );
-
-  if (editQuill) {
-    editQuill.setContents([]);
-  }
-}
-
-async function saveEdit() {
-
-  if (
-    !editState ||
-    editorIsEmpty(
-      editQuill
-    )
-  ) {
-    return;
-  }
-
-  const content =
-    getEditorHtml(
-      editQuill
-    );
-
-  if (
-    editState.type ===
-    "post"
-  ) {
-
-    const post =
-      posts.find(
-        p =>
-          Number(p.id) ===
-          Number(editState.id)
-      );
-
-    if (
-      !post ||
-      !isMine(
-        post.Auteur
-      )
-    ) {
-      return;
-    }
-
-    const title =
-      document
-        .getElementById(
-          "edit-title"
-        )
-        .value
-        .trim();
-
-    if (!title) {
-      return;
-    }
-
-    const canPin =
-      isChannelAdmin(
-        currentUserId,
-        post.Canal
-      );
-
-    const fields = {
-
-      Titre:
-        title,
-
-      Contenu:
-        content,
-
-      Type_publication:
-        document.getElementById(
-          "edit-type"
-        ).value,
-
-      Lien:
-        document
-          .getElementById(
-            "edit-link"
-          )
-          .value
-          .trim(),
-
-      Modifie:
-        true,
-
-      Date_modification:
-        Date.now() / 1000
-    };
-
-    if (canPin) {
-
-      fields.Epingle =
-        document.getElementById(
-          "edit-pin"
-        ).checked;
-
-    }
-
-    await grist.docApi.applyUserActions(
-      [
-        [
-          "UpdateRecord",
-          TABLES.posts,
-          post.id,
-          fields
-        ]
-      ]
-    );
-
-  } else {
-
-    const comment =
-      comments.find(
-        c =>
-          Number(c.id) ===
-          Number(editState.id)
-      );
-
-    if (
-      !comment ||
-      !isMine(
-        comment.Auteur
-      )
-    ) {
-      return;
-    }
-
-    await grist.docApi.applyUserActions(
-      [
-        [
-          "UpdateRecord",
-          TABLES.comments,
-          comment.id,
-          {
-            Contenu:
-              content,
-
-            Modifie:
-              true,
-
-            Date_modification:
-              Date.now() / 1000
-          }
-        ]
-      ]
-    );
-  }
-
-  closeEditModal();
-
-  await loadData();
-}
-
-
-/* ==========================================================
-   SUPPRESSION / EPINGLAGE
-========================================================== */
-
-async function deletePost(
-  postId
-) {
-
-  const post =
-    posts.find(
-      p =>
-        Number(p.id) ===
-        Number(postId)
-    );
-
-  if (
-    !post ||
-    !isMine(
-      post.Auteur
-    )
-  ) {
-    return;
-  }
-
-  if (
-    !confirm(
-      "Supprimer cette publication ?"
-    )
-  ) {
-    return;
-  }
-
-  await grist.docApi.applyUserActions(
-    [
-      [
-        "UpdateRecord",
-        TABLES.posts,
-        post.id,
-        {
-          Archive: true
-        }
-      ]
-    ]
-  );
-
-  await loadData();
-}
-
-async function deleteComment(
-  commentId
-) {
-
-  const comment =
-    comments.find(
-      c =>
-        Number(c.id) ===
-        Number(commentId)
-    );
-
-  if (
-    !comment ||
-    !isMine(
-      comment.Auteur
-    )
-  ) {
-    return;
-  }
-
-  if (
-    !confirm(
-      "Supprimer cette réponse ?"
-    )
-  ) {
-    return;
-  }
-
-  await grist.docApi.applyUserActions(
-    [
-      [
-        "UpdateRecord",
-        TABLES.comments,
-        comment.id,
-        {
-          Supprime: true
-        }
-      ]
-    ]
-  );
-
-  await loadData();
-}
-
-async function togglePin(
-  postId
-) {
-
-  const post =
-    posts.find(
-      p =>
-        Number(p.id) ===
-        Number(postId)
-    );
-
-  if (!post) {
-    return;
-  }
-
-  if (
-    !isChannelAdmin(
-      currentUserId,
-      post.Canal
-    )
-  ) {
-    return;
-  }
-
-  await grist.docApi.applyUserActions(
-    [
-      [
-        "UpdateRecord",
-        TABLES.posts,
-        post.id,
-        {
-          Epingle:
-            !post.Epingle
-        }
-      ]
-    ]
-  );
-
-  await loadData();
-}
-
-
-/* ==========================================================
-   CHARGEMENT
-========================================================== */
-
-async function loadData() {
-
-  try {
-
-    const previousChannelId =
-      currentChannel
-        ? currentChannel.id
-        : null;
-
-    const [
-      channelsRaw,
-      membershipsRaw,
-      postsRaw,
-      commentsRaw,
-      usersRaw
-    ] =
-      await Promise.all(
-        [
-
-          grist.docApi.fetchTable(
-            TABLES.channels
-          ),
-
-          grist.docApi.fetchTable(
-            TABLES.memberships
-          ),
-
-          grist.docApi.fetchTable(
-            TABLES.posts
-          ),
-
-          grist.docApi.fetchTable(
-            TABLES.comments
-          ),
-
-          grist.docApi.fetchTable(
-            TABLES.users
-          )
-
-        ]
-      );
-
-    channels =
-      rowsFromTable(
-        channelsRaw
-      );
-
-    memberships =
-      rowsFromTable(
-        membershipsRaw
-      );
-
-    posts =
-      rowsFromTable(
-        postsRaw
-      );
-
-    comments =
-      rowsFromTable(
-        commentsRaw
-      );
-
-    users =
-      rowsFromTable(
-        usersRaw
-      );
-
-    if (
-      !currentUserId ||
-      !users.some(
-        user =>
-          Number(user.id) ===
-          Number(currentUserId)
-      )
-    ) {
-
-      const firstActive =
-        users.find(
-          user =>
-            user.Actif !== false
-        );
-
-      currentUserId =
-        firstActive
-          ? firstActive.id
-          : null;
-    }
-
-    if (previousChannelId) {
-
-      currentChannel =
-        channels.find(
-          channel =>
-            Number(channel.id) ===
-            Number(previousChannelId)
-        ) || null;
-
-    }
-
-    if (!currentChannel) {
-
-      currentChannel =
-        channels.find(
-          channel =>
-            String(
-              channel.Nom
-            )
-              .toLowerCase() ===
-            "général"
-        ) ||
-        channels[0] ||
-        null;
-
-    }
-
-    renderCurrentUserSelector();
-
-    renderChannels();
-
-    renderFeed();
-
-    updateComposerPermissions();
-
-  } catch (error) {
-
-    console.error(error);
-
-    document.getElementById(
-      "feed"
-    ).innerHTML = `
+    document.getElementById("feed").innerHTML = `
       <div class="message error">
-
-        <strong>
-          Impossible de lire les données Grist.
-        </strong>
-
+        <strong>Impossible de lire les données Grist.</strong>
         <br><br>
-
-        ${escapeHtml(
-          error.message ||
-          error
-        )}
-
+        ${escapeHtml(error.message || error)}
       </div>
     `;
   }
 }
 
-
-/* ==========================================================
+/* =========================
    EVENEMENTS GENERAUX
-========================================================== */
+========================= */
 
-document.getElementById(
-  "new-post-button"
-).addEventListener(
-  "click",
-  openComposer
-);
+document
+  .getElementById("new-post-button")
+  .addEventListener("click", openComposer);
 
-document.getElementById(
-  "close-composer"
-).addEventListener(
-  "click",
-  closeComposer
-);
+document
+  .getElementById("cancel-post")
+  .addEventListener("click", closeComposer);
 
-document.getElementById(
-  "cancel-post"
-).addEventListener(
-  "click",
-  closeComposer
-);
+document
+  .getElementById("publish-post")
+  .addEventListener("click", createPost);
 
-document.getElementById(
-  "publish-post"
-).addEventListener(
-  "click",
-  createPost
-);
+document
+  .getElementById("close-edit-modal")
+  .addEventListener("click", closeEditModal);
 
-document.getElementById(
-  "close-edit-modal"
-).addEventListener(
-  "click",
-  closeEditModal
-);
+document
+  .getElementById("cancel-edit")
+  .addEventListener("click", closeEditModal);
 
-document.getElementById(
-  "cancel-edit"
-).addEventListener(
-  "click",
-  closeEditModal
-);
+document
+  .getElementById("save-edit")
+  .addEventListener("click", saveEdit);
 
-document.getElementById(
-  "save-edit"
-).addEventListener(
-  "click",
-  saveEdit
-);
-
-document.querySelector(
-  ".modal-backdrop"
-).addEventListener(
-  "click",
-  closeEditModal
-);
-
-
-/* ==========================================================
-   INIT
-========================================================== */
-
-initEditors();
+document
+  .querySelector(".modal-backdrop")
+  .addEventListener("click", closeEditModal);
 
 loadData();
