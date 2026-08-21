@@ -70,10 +70,70 @@
 
         <div class="field">
           <label for="post-content">Message</label>
-          <textarea
-            id="post-content"
-            placeholder="Écrivez votre publication…"
-          ></textarea>
+        <div class="rich-editor">
+
+          <div class="rich-toolbar">
+        
+            <button
+              type="button"
+              title="Gras"
+              onmousedown="event.preventDefault(); document.execCommand('bold');"
+            >
+              <strong>B</strong>
+            </button>
+        
+            <button
+              type="button"
+              title="Italique"
+              onmousedown="event.preventDefault(); document.execCommand('italic');"
+            >
+              <em>I</em>
+            </button>
+        
+            <button
+              type="button"
+              title="Souligné"
+              onmousedown="event.preventDefault(); document.execCommand('underline');"
+            >
+              <u>U</u>
+            </button>
+        
+            <button
+              type="button"
+              title="Liste à puces"
+              onmousedown="event.preventDefault(); document.execCommand('insertUnorderedList');"
+            >
+              • Liste
+            </button>
+        
+            <button
+              type="button"
+              title="Liste numérotée"
+              onmousedown="event.preventDefault(); document.execCommand('insertOrderedList');"
+            >
+              1. Liste
+            </button>
+        
+          </div>
+        
+          <div
+            id="post-rich-content"
+            class="rich-content-editor"
+            contenteditable="true"
+            data-placeholder="Écrivez votre publication…"
+          ></div>
+        
+        </div>
+        
+        <!--
+          IMPORTANT :
+          on conserve volontairement l'ancien textarea.
+          app.js continue donc à trouver #post-content exactement comme avant.
+        -->
+        <textarea
+          id="post-content"
+          style="display:none;"
+        ></textarea>
         </div>
 
         <div class="field">
@@ -173,5 +233,29 @@
 
 <script src="app.js"></script>
 
+<script>
+  document.addEventListener("input", function (event) {
+
+    if (event.target.id !== "post-rich-content") {
+      return;
+    }
+
+    const richEditor =
+      document.getElementById("post-rich-content");
+
+    const oldTextarea =
+      document.getElementById("post-content");
+
+    /*
+     * Première étape volontairement prudente :
+     * app.js reçoit encore du texte brut.
+     *
+     * Donc aucune modification du stockage Grist.
+     */
+    oldTextarea.value =
+      richEditor.innerText;
+  });
+</script>
+  
 </body>
 </html>
