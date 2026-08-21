@@ -6,6 +6,14 @@
 
   <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
 
+  <link
+    href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css"
+    rel="stylesheet"
+  >
+
+  <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"></script>
+
   <link rel="stylesheet" href="style.css">
 
   <title>Teams R3</title>
@@ -31,7 +39,7 @@
 
     <header class="header">
 
-      <div>
+      <div class="channel-heading">
         <h1 id="channel-title">Chargement…</h1>
         <p id="channel-description"></p>
       </div>
@@ -53,31 +61,61 @@
 
     <div class="feed-wrapper">
 
-      <div id="composer" class="composer hidden">
+      <!-- NOUVELLE PUBLICATION -->
 
-        <h2>Nouvelle publication</h2>
+      <section id="composer" class="composer hidden">
+
+        <div class="composer-top">
+          <h2>Nouvelle publication</h2>
+
+          <button
+            id="close-composer"
+            class="icon-button"
+            type="button"
+            aria-label="Fermer"
+          >
+            ×
+          </button>
+        </div>
 
         <div id="composer-message"></div>
 
-        <div class="field">
-          <label for="post-title">Titre</label>
-          <input
-            id="post-title"
-            type="text"
-            placeholder="Titre de la publication"
-          >
+        <div class="composer-grid">
+
+          <div class="field">
+            <label for="post-type">Type</label>
+
+            <select id="post-type">
+              <option value="Publication">Publication</option>
+              <option value="Annonce">Annonce</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="post-title">Titre</label>
+
+            <input
+              id="post-title"
+              type="text"
+              placeholder="Titre de la publication"
+            >
+          </div>
+
         </div>
 
         <div class="field">
-          <label for="post-content">Message</label>
-          <textarea
-            id="post-content"
-            placeholder="Écrivez votre publication…"
-          ></textarea>
+          <label>Message</label>
+
+          <div id="post-editor" class="rich-editor"></div>
+
+          <div class="field-hint">
+            Astuce : tapez <strong>@Prénom</strong> pour mentionner visuellement un membre.
+          </div>
         </div>
 
         <div class="field">
-          <label for="post-link">Lien</label>
+          <label for="post-link">Lien complémentaire</label>
+
           <input
             id="post-link"
             type="text"
@@ -87,18 +125,29 @@
 
         <div class="composer-actions">
 
-          <label class="checkbox-row">
+          <label
+            id="post-pin-wrapper"
+            class="checkbox-row hidden"
+          >
             <input id="post-pin" type="checkbox">
-            Épingler
+            Épingler dans ce canal
           </label>
 
           <div class="composer-actions-right">
 
-            <button id="cancel-post" class="secondary">
+            <button
+              id="cancel-post"
+              class="secondary"
+              type="button"
+            >
               Annuler
             </button>
 
-            <button id="publish-post" class="primary">
+            <button
+              id="publish-post"
+              class="primary"
+              type="button"
+            >
               Publier
             </button>
 
@@ -106,7 +155,7 @@
 
         </div>
 
-      </div>
+      </section>
 
       <div id="feed">
         <div class="message">
@@ -120,7 +169,8 @@
 
 </div>
 
-<!-- MODALE ÉDITION -->
+
+<!-- MODALE D'ÉDITION -->
 
 <div id="edit-modal" class="modal hidden">
 
@@ -129,39 +179,104 @@
   <div class="modal-dialog">
 
     <div class="modal-header">
-      <h2 id="edit-modal-title">Modifier</h2>
-      <button id="close-edit-modal" class="icon-button">×</button>
+
+      <h2 id="edit-modal-title">
+        Modifier
+      </h2>
+
+      <button
+        id="close-edit-modal"
+        class="icon-button"
+        type="button"
+      >
+        ×
+      </button>
+
     </div>
 
-    <div class="field" id="edit-title-field">
-      <label for="edit-title">Titre</label>
-      <input id="edit-title" type="text">
+    <div id="edit-post-fields">
+
+      <div class="field">
+
+        <label for="edit-type">
+          Type
+        </label>
+
+        <select id="edit-type">
+          <option value="Publication">Publication</option>
+          <option value="Annonce">Annonce</option>
+        </select>
+
+      </div>
+
+      <div class="field">
+
+        <label for="edit-title">
+          Titre
+        </label>
+
+        <input
+          id="edit-title"
+          type="text"
+        >
+
+      </div>
+
     </div>
 
     <div class="field">
-      <label for="edit-content">Message</label>
-      <textarea id="edit-content"></textarea>
+
+      <label>
+        Message
+      </label>
+
+      <div
+        id="edit-editor"
+        class="rich-editor"
+      ></div>
+
     </div>
 
-    <div class="field" id="edit-link-field">
-      <label for="edit-link">Lien</label>
-      <input id="edit-link" type="text">
+    <div id="edit-link-field" class="field">
+
+      <label for="edit-link">
+        Lien complémentaire
+      </label>
+
+      <input
+        id="edit-link"
+        type="text"
+      >
+
     </div>
 
-    <div id="edit-pin-field">
+    <div
+      id="edit-pin-field"
+      class="field hidden"
+    >
+
       <label class="checkbox-row">
         <input id="edit-pin" type="checkbox">
         Épingler
       </label>
+
     </div>
 
     <div class="modal-actions">
 
-      <button id="cancel-edit" class="secondary">
+      <button
+        id="cancel-edit"
+        class="secondary"
+        type="button"
+      >
         Annuler
       </button>
 
-      <button id="save-edit" class="primary">
+      <button
+        id="save-edit"
+        class="primary"
+        type="button"
+      >
         Enregistrer
       </button>
 
